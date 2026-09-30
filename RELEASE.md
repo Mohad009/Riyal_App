@@ -3,6 +3,17 @@
 A checklist for cutting a release and putting it on GitHub. Every step here
 exists because something went wrong without it once.
 
+**Current preparation (2026-09-30):** v1.6.2 is being prepared for
+`Mohad009/Riyal_App` in `docs/specs/release-v1.6.2.md`. The original release
+signing keystore is unavailable in this environment. Do not publish an unsigned
+or differently signed APK: it cannot update existing installs, and uninstalling
+would remove local records. This file records the historical release process;
+the current `AGENTS.md` and pinned workflow govern review, acceptance and
+publication. In particular, do not use the manual merge command below to bypass
+the workflow. Older installed builds also look for releases at
+`Alyaqdhans/Riyal`, so a release in the new repository alone will not notify
+them.
+
 ## Before you start
 
 You need two things that are deliberately not in this repository:
@@ -12,7 +23,7 @@ You need two things that are deliberately not in this repository:
 - **A GitHub login.** `gh auth login`, answering yes to authenticating Git as
   well; otherwise `git push` hangs on a credential prompt with no error.
 
-## The checklist
+## Historical checklist (superseded by the workflow for v1.6.2)
 
 ### 1. Pick the version, and raise versionCode
 
@@ -144,9 +155,11 @@ change between 1.1 and 1.5 broke updates for everyone on 1.1:
 | 1.0, 1.1 | lost | `CN=riyal, O=riyal, OU=riyal` | `13:83:5D:4C:...:88:9C` |
 | 1.5, 1.6.0 onward | `/home/linuxbrew/riyal.jks` | `C=riyal, ST=riyal, L=riyal, O=riyal, OU=riyal, CN=riyal` | `D1:98:F7:B7:...:BB:C2` |
 
-**The release key is `/home/linuxbrew/riyal.jks`**, PKCS#12, alias `key0`,
-valid to January 3026. It signed 1.5 and it signs everything after, so 1.6.0
-installs over 1.5 as an ordinary update with the user's records intact.
+**The historical release key was `/home/linuxbrew/riyal.jks`**, PKCS#12,
+alias `key0`, valid to January 3026. It signed 1.5 and later builds on the
+original machine; its availability on this Windows machine is unverified and
+the owner reported it unavailable for the current release. A future build
+installs over those versions only if it is signed with the same certificate.
 
 There is a third keystore, `/home/linuxbrew/riyal-release.jks`, alias `riyal`,
 `E5:C4:F9:55:...:50:6B`. It signed 1.51, which was never published, so nobody
