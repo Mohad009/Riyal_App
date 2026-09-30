@@ -1,6 +1,6 @@
 # Riyal v1.6.2 release preparation
 
-Status: Draft candidate preparation. This is not approval to tag, sign, publish or distribute an APK.
+Status: Draft candidate preparation. The owner explicitly requested a new signing key and a signed APK for local inspection on 2026-09-30. This is not approval to tag, publish or distribute an APK.
 
 ## Owner choices and source
 
@@ -12,7 +12,7 @@ The candidate changes `versionName` from `1.6.1` to `1.6.2` and `versionCode` fr
 
 The feature carried forward from the merged app code is the Arabic interface, with device, English and Arabic language choices. Built-in labels are localized for display while stored financial identifiers and user-entered names remain unchanged. The optional telephony feature declaration also fixes the earlier ChromeOS lint error. `Store.SCHEMA_VERSION` remains 2; this candidate introduces no storage migration. Actual persistence across an upgrade has not been tested on a device.
 
-The existing release certificate is required for an update to the installed `com.alyaqdhan.riyal` app. The owner reports its keystore unavailable, and `local.properties` is absent here; therefore **do not sign with a new key, publish a release APK, or tell users to uninstall the app**. Android backup is disabled in the manifest, and the CSV export is not a full restore path for saved categorization and preferences. The historical certificate information in `RELEASE.md` is not proof that the key is available or that a new APK matches it. Recovery of the original key, verification of its full certificate fingerprint against a known installed or previously distributed APK, and an install-over test that preserves synthetic data are release gates. If recovery is impossible, distribution and data-migration choices require a separate owner decision.
+The existing release certificate is required for an update to the installed `com.alyaqdhan.riyal` app. The owner reports its keystore unavailable, and `local.properties` is absent here. On 2026-09-30 the owner explicitly requested a new key and signed app. A new 4096-bit RSA PKCS#12 key was generated outside the repository and used to sign the verified v1.6.2 candidate APK. Android's `apksigner` verified its v3 signature, package `com.alyaqdhan.riyal`, versionCode 6 and versionName 1.6.2. Its certificate SHA-256 is `881c03ae03b04b9abb6b3d1c6ae1a064ea8de4b50849b6d15f7eb9e71d987c6f`; signed APK SHA-256 is `2bbabfb28abf480ff90a87ba2ed077a7ba038b08dd72e260bcd145068fa7700c`. The local artifact is `app/build/outputs/apk/release/Riyal-v1.6.2-new-key-FRESH-INSTALL-ONLY.apk`. Neither key nor APK is in Git. The new certificate does not permit upgrades of previously installed releases. **Do not publish this APK as an update or tell users to uninstall the app.** Android backup is disabled in the manifest, and the CSV export is not a full restore path for saved categorization and preferences. Recovery of the original key, verification of its full certificate fingerprint against a known installed or previously distributed APK, and an install-over test that preserves synthetic data are still release gates for an upgrade. If recovery is impossible, distribution and data-migration choices require a separate owner decision.
 
 The pinned agent-workflow setup remains incomplete (manual approval mode, no authenticated required CI check, draft pilot and no accepted Arabic journey). Local preparation and a draft review pull request do not establish an accepted release candidate. The release gate also needs owner acceptance of Arabic/English journeys on a dedicated device, including RTL, enlarged text, TalkBack, permission handling and app-language persistence.
 
@@ -21,7 +21,7 @@ The pinned agent-workflow setup remains incomplete (manual approval mode, no aut
 - Build the release variant without signing credentials and verify its package, version name and version code. An unsigned APK is inspection-only and must not be offered to users.
 - Run the debug build, lint and all JVM tests on the exact candidate. Record test count and failures.
 - Verify the update comparison sees `v1.6.2` as newer than installed `1.6.1` and that the release lookup resolves the chosen repository.
-- When the original key is available, build and verify a signed release APK, compare its full certificate fingerprint to the prior distributed APK, and install it over a prior version on a dedicated device with synthetic data. Check saved categories, accounts, preferences and transactions after the upgrade.
+- For an upgrade, recover the original key, build and verify an APK with that key, compare its full certificate fingerprint to the prior distributed APK, and install it over a prior version on a dedicated device with synthetic data. Check saved categories, accounts, preferences and transactions after the upgrade. The new-key APK is only for fresh-install testing.
 - Complete workflow readiness, independent review, owner acceptance and `wf lifecycle --stage release` before publishing.
 
 ## Draft public release notes
