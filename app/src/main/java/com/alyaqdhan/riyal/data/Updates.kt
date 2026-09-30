@@ -15,8 +15,8 @@ import org.json.JSONObject
 object Updates {
 
     /** Where releases are published. Public, so the API needs no token. */
-    const val OWNER = "Alyaqdhans"
-    const val REPO = "Riyal"
+    const val OWNER = "Mohad009"
+    const val REPO = "Riyal_App"
 
     /** GitHub rejects an API request that does not identify itself. */
     const val USER_AGENT = "Riyal-Android"
