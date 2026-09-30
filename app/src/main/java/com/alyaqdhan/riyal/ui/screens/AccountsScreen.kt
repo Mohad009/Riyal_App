@@ -44,11 +44,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.alyaqdhan.riyal.R
+import com.alyaqdhan.riyal.ui.compose.bidiValue
+import com.alyaqdhan.riyal.ui.compose.accountLabel
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
-import com.alyaqdhan.riyal.ui.compose.countOf
 import com.alyaqdhan.riyal.core.Money
 import com.alyaqdhan.riyal.data.Account
 import com.alyaqdhan.riyal.data.Categories
@@ -77,32 +85,52 @@ private val asOfFmt = DateTimeFormatter.ofPattern("dd MMM uuuu, h:mm a")
  * that and asking the user to vouch for the numbers before anything relies on them.
  */
 /** What the page is for, behind the (i) rather than above the work. */
-private const val HELP =
-    "The accounts Riyal found in your bank's own messages, and the balance each one " +
-        "last quoted. A balance read out of a text is a good first guess and nothing " +
-        "more, so open any account to set the real figure and the date it was true.\n\n" +
-        "An account also carries the sender names that belong to it, which is how a " +
-        "message gets routed to the right balance. Archiving one keeps its records, " +
-        "because the money still moved."
-
 @Composable
 fun AccountsScreen(vm: MainViewModel, onBack: () -> Unit) {
     val accounts by vm.accounts.collectAsState()
     val balances by vm.balances.collectAsState()
     val needsConfirming by vm.accountsNeedConfirming.collectAsState()
-    var editing by remember { mutableStateOf<Account?>(null) }
-    var confirmDelete by remember { mutableStateOf<Account?>(null) }
+    // Save only stable identifiers and the new account's generated defaults. The editor's
+    // text fields save their own draft values across locale recreation.
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editingNew by rememberSaveable { mutableStateOf(false) }
+    var newAccountColor by rememberSaveable { mutableStateOf(0) }
+    var newAccountOpenedAt by rememberSaveable { mutableStateOf(0L) }
+    var newAccountCurrency by rememberSaveable { mutableStateOf(vm.prefs.defaultCurrency) }
+    var confirmDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
+    fun startAdding() {
+        val blank = blankAccount(vm.prefs.defaultCurrency)
+        editingId = blank.id
+        editingNew = true
+        newAccountColor = blank.color
+        newAccountOpenedAt = blank.openingAtMillis
+        newAccountCurrency = blank.currency
+    }
+    val editing = editingId?.let { id ->
+        if (editingNew) Account(
+            id = id,
+            name = "",
+            bankName = "",
+            last4 = null,
+            currency = newAccountCurrency,
+            openingBalanceMinor = 0L,
+            openingAtMillis = newAccountOpenedAt,
+            color = newAccountColor,
+            needsBalance = true,
+        ) else accounts.firstOrNull { it.id == id }
+    }
+    val confirmDelete = accounts.firstOrNull { it.id == confirmDeleteId }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Bank accounts") },
+                title = { Text(stringResource(R.string.management_bank_accounts)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.management_back))
                     }
                 },
-                actions = { HelpAction("Bank accounts", HELP) },
+                actions = { HelpAction(stringResource(R.string.management_bank_accounts), stringResource(R.string.management_accounts_help)) },
             )
         },
     ) { padding ->
@@ -111,18 +139,17 @@ fun AccountsScreen(vm: MainViewModel, onBack: () -> Unit) {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     EmptyState(
                         style = FaceStyle.SLEEPY,
-                        title = "No accounts yet",
-                        subtitle = "Scan your messages and Riyal will set accounts up from what your " +
-                            "bank already told you, or add one here by hand.",
+                        title = stringResource(R.string.management_no_accounts),
+                        subtitle = stringResource(R.string.management_accounts_empty_hint),
                     )
                     Row(
                         Modifier.fillMaxWidth().padding(16.dp),
                         horizontalArrangement = Arrangement.Center,
                     ) {
                         FilledTonalButton(
-                            onClick = { editing = blankAccount(vm.prefs.defaultCurrency) },
+                            onClick = { startAdding() },
                             modifier = Modifier.pressBounce(),
-                        ) { Text("Add an account") }
+                        ) { Text(stringResource(R.string.management_add_account)) }
                     }
                 }
                 return@Column
@@ -148,14 +175,14 @@ fun AccountsScreen(vm: MainViewModel, onBack: () -> Unit) {
                     AccountCard(
                         account = account,
                         balance = balances[account.id] ?: account.openingBalanceMinor,
-                        onEdit = { editing = account },
+                        onEdit = { editingId = account.id; editingNew = false },
                     )
                 }
                 item(key = "add") {
                     FilledTonalButton(
-                        onClick = { editing = blankAccount(vm.prefs.defaultCurrency) },
+                        onClick = { startAdding() },
                         modifier = Modifier.fillMaxWidth().pressBounce(),
-                    ) { Text("Add an account") }
+                    ) { Text(stringResource(R.string.management_add_account)) }
                 }
             }
         }
@@ -164,36 +191,35 @@ fun AccountsScreen(vm: MainViewModel, onBack: () -> Unit) {
     editing?.let { account ->
         AccountEditorDialog(
             account = account,
-            isNew = accounts.none { it.id == account.id },
+            isNew = editingNew,
             onSave = {
                 vm.saveAccount(it)
-                editing = null
+                editingId = null
             },
             onDelete = {
-                confirmDelete = account
-                editing = null
+                confirmDeleteId = account.id
+                editingId = null
             },
-            onDismiss = { editing = null },
+            onDismiss = { editingId = null },
         )
     }
 
     confirmDelete?.let { account ->
         AlertDialog(
-            onDismissRequest = { confirmDelete = null },
-            title = { Text("Delete ${account.displayName}?") },
+            onDismissRequest = { confirmDeleteId = null },
+            title = { Text(stringResource(R.string.management_delete_named, bidiValue(accountLabel(account)))) },
             text = {
                 Text(
-                    "Its transactions are kept, because the money still moved, but they'll no longer " +
-                        "belong to any account, so they stop counting towards a balance."
+                    stringResource(R.string.management_account_delete_hint)
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     vm.deleteAccount(account.id)
-                    confirmDelete = null
-                }) { Text("Delete") }
+                    confirmDeleteId = null
+                }) { Text(stringResource(R.string.management_delete)) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { confirmDeleteId = null }) { Text(stringResource(R.string.management_cancel)) } },
         )
     }
 }
@@ -213,7 +239,7 @@ private fun ConfirmBanner(count: Int, anyMissingBalance: Boolean, onConfirm: () 
                 Face(mood = 0.4f, style = FaceStyle.CONFUSED, modifier = Modifier.size(48.dp))
                 Column {
                     Text(
-                        "Are these right?",
+                        stringResource(R.string.management_confirm_accounts_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
@@ -221,11 +247,9 @@ private fun ConfirmBanner(count: Int, anyMissingBalance: Boolean, onConfirm: () 
                     // to say the same thing three ways before the button that ends it.
                     Text(
                         if (anyMissingBalance) {
-                            countOf(count, "account") + " read from your bank's texts. One quoted no " +
-                                "balance and starts at zero. Tap it to set the real figure."
+                            pluralStringResource(R.plurals.management_accounts_confirm_missing, count, count)
                         } else {
-                            countOf(count, "account") + " read from the balances your bank's texts quote. " +
-                                "Tap any that look wrong."
+                            pluralStringResource(R.plurals.management_accounts_confirm_hint, count, count)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -235,7 +259,7 @@ private fun ConfirmBanner(count: Int, anyMissingBalance: Boolean, onConfirm: () 
             Button(
                 onClick = onConfirm,
                 modifier = Modifier.fillMaxWidth().pressBounce(),
-            ) { Text("These are correct") }
+            ) { Text(stringResource(R.string.management_confirm_accounts)) }
         }
     }
 }
@@ -248,14 +272,14 @@ private fun TotalRow(accounts: List<Account>, balances: Map<String, Long>) {
     val byCurrency = live.groupBy { it.currency }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
-            "Total",
+            stringResource(R.string.management_total),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         byCurrency.forEach { (currency, group) ->
             val total = group.sumOf { balances[it.id] ?: it.openingBalanceMinor }
             Text(
-                Money.format(total, currency),
+                bidiValue(Money.format(total, currency)),
                 style = MaterialTheme.typography.headlineSmall,
                 color = if (total < 0) MaterialTheme.colorScheme.error else successColor(),
             )
@@ -295,17 +319,17 @@ private fun AccountCard(
                     ),
             )
             Column(Modifier.weight(1f)) {
-                Text(account.displayName, style = MaterialTheme.typography.titleMedium)
+                Text(bidiValue(accountLabel(account)), style = MaterialTheme.typography.titleMedium)
                 if (account.needsBalance) {
                     Text(
-                        "No balance in any message, tap to set it",
+                        stringResource(R.string.management_account_no_balance),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.tertiary,
                     )
                 }
             }
             Text(
-                Money.format(balance, account.currency),
+                bidiValue(Money.format(balance, account.currency)),
                 style = MaterialTheme.typography.titleMedium,
                 color = if (balance < 0) MaterialTheme.colorScheme.error else successColor(),
             )
@@ -321,13 +345,13 @@ private fun AccountEditorDialog(
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var name by remember { mutableStateOf(account.name) }
-    var bankName by remember { mutableStateOf(account.bankName) }
-    var last4 by remember { mutableStateOf(account.last4.orEmpty()) }
-    var currency by remember { mutableStateOf(account.currency) }
-    var senders by remember { mutableStateOf(account.senderIds.joinToString(", ")) }
-    var archived by remember { mutableStateOf(account.archived) }
-    var balance by remember {
+    var name by rememberSaveable(account.id) { mutableStateOf(account.name) }
+    var bankName by rememberSaveable(account.id) { mutableStateOf(account.bankName) }
+    var last4 by rememberSaveable(account.id) { mutableStateOf(account.last4.orEmpty()) }
+    var currency by rememberSaveable(account.id) { mutableStateOf(account.currency) }
+    var senders by rememberSaveable(account.id) { mutableStateOf(account.senderIds.joinToString(", ")) }
+    var archived by rememberSaveable(account.id) { mutableStateOf(account.archived) }
+    var balance by rememberSaveable(account.id) {
         mutableStateOf(
             if (account.openingBalanceMinor == 0L && account.needsBalance) ""
             else Money.toMajor(account.openingBalanceMinor, account.currency).toPlainString()
@@ -337,7 +361,7 @@ private fun AccountEditorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isNew) "Add account" else "Edit account") },
+        title = { Text(if (isNew) stringResource(R.string.management_add_account_title) else stringResource(R.string.management_edit_account)) },
         text = {
             Column(
                 Modifier.verticalScroll(rememberScrollState()),
@@ -346,41 +370,44 @@ private fun AccountEditorDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nickname (optional)") },
-                    placeholder = { Text(Account.defaultNameOf(bankName, last4.ifBlank { null })) },
+                    label = { Text(stringResource(R.string.management_nickname)) },
+                    placeholder = { Text(accountLabel(account.copy(name = "", bankName = bankName, last4 = last4.ifBlank { null }))) },
                     supportingText = {
-                        Text("Leave it empty and the account is named after its bank and last digits.")
+                        Text(stringResource(R.string.management_nickname_hint))
                     },
                     singleLine = true,
                 )
                 OutlinedTextField(
                     value = bankName,
                     onValueChange = { bankName = it },
-                    label = { Text("Bank") },
+                    label = { Text(stringResource(R.string.management_bank)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
                     value = balance,
                     onValueChange = { balance = it },
-                    label = { Text(if (isNew) "Balance now" else "Opening balance") },
+                    label = { Text(if (isNew) stringResource(R.string.management_balance_now) else stringResource(R.string.management_opening_balance)) },
                     suffix = { Text(currency) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    textStyle = TextStyle(textDirection = TextDirection.Ltr),
                 )
                 Text(
                     if (isNew) {
-                        "Everything Riyal records from now on moves this figure."
+                        stringResource(R.string.management_opening_new_hint)
                     } else {
-                        "The balance as of " +
-                            asOfFmt.format(
+                        stringResource(
+                            R.string.management_opening_date_hint,
+                            asOfFmt.withLocale(LocalConfiguration.current.locales[0]).format(
                                 Instant.ofEpochMilli(account.openingAtMillis).atZone(ZoneId.systemDefault())
-                            ) + ". Records after that moment move it."
+                            ),
+                        )
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 DropdownField(
-                    label = "Currency",
+                    label = stringResource(R.string.management_currency),
                     value = currency,
                     options = CURRENCIES,
                     display = { it },
@@ -389,17 +416,17 @@ private fun AccountEditorDialog(
                 OutlinedTextField(
                     value = last4,
                     onValueChange = { last4 = it.filter(Char::isDigit).take(6) },
-                    label = { Text("Account ends with (optional)") },
+                    label = { Text(stringResource(R.string.management_account_digits)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
                 OutlinedTextField(
                     value = senders,
                     onValueChange = { senders = it },
-                    label = { Text("SMS senders") },
-                    placeholder = { Text("BankMuscat, NBO") },
+                    label = { Text(stringResource(R.string.management_sms_senders)) },
+                    placeholder = { Text(stringResource(R.string.management_sender_example)) },
                     supportingText = {
-                        Text("Messages from these senders are filed under this account.")
+                        Text(stringResource(R.string.management_senders_hint))
                     },
                 )
                 Row(
@@ -407,7 +434,7 @@ private fun AccountEditorDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Switch(checked = archived, onCheckedChange = { archived = it })
-                    Text("Closed account (hide it from pickers)", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.management_closed_account), style = MaterialTheme.typography.bodyMedium)
                 }
             }
         },
@@ -436,7 +463,7 @@ private fun AccountEditorDialog(
                         )
                     )
                 },
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.management_save)) }
         },
         dismissButton = {
             Row {
@@ -446,9 +473,9 @@ private fun AccountEditorDialog(
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.error,
                         ),
-                    ) { Text("Delete") }
+                    ) { Text(stringResource(R.string.management_delete)) }
                 }
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.management_cancel)) }
             }
         },
     )

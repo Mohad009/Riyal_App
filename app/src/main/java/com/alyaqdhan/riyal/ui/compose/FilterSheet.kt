@@ -23,6 +23,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.alyaqdhan.riyal.R
 import com.alyaqdhan.riyal.data.Account
 import com.alyaqdhan.riyal.data.Category
 
@@ -58,14 +60,14 @@ fun FilterSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Filters", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.forms_filters), style = MaterialTheme.typography.titleMedium)
                 if (selectedCategoryId != null || selectedAccountId != null) {
-                    TextButton(onClick = onClearAll) { Text("Clear") }
+                    TextButton(onClick = onClearAll) { Text(stringResource(R.string.forms_clear_filters)) }
                 }
             }
 
             if (accounts.isNotEmpty()) {
-                Text("Account", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.forms_account), style = MaterialTheme.typography.labelLarge)
                 FilterFlow {
                     accounts.forEach { account ->
                         FilterChip(
@@ -73,14 +75,14 @@ fun FilterSheet(
                             onClick = {
                                 onAccount(if (selectedAccountId == account.id) null else account.id)
                             },
-                            label = { Text(account.displayName) },
+                            label = { Text(bidiValue(account.displayName)) },
                         )
                     }
                 }
             }
 
             if (categories.isNotEmpty()) {
-                Text("Category", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.forms_category), style = MaterialTheme.typography.labelLarge)
                 FilterFlow {
                     categories.forEach { category ->
                         FilterChip(
@@ -88,7 +90,7 @@ fun FilterSheet(
                             onClick = {
                                 onCategory(if (selectedCategoryId == category.id) null else category.id)
                             },
-                            label = { Text(category.name) },
+                            label = { Text(bidiValue(categoryLabel(category))) },
                             leadingIcon = { CategoryIcon(category.id) },
                         )
                     }

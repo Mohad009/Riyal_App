@@ -5,6 +5,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.abs
 
 /**
@@ -198,6 +199,7 @@ object Stats {
         endExclusive: Long,
         currency: String,
         accountId: String? = null,
+        locale: Locale = Locale.getDefault(),
     ): List<CashflowPoint> {
         val zone = ZoneId.systemDefault()
         val startDay = Instant.ofEpochMilli(start).atZone(zone).toLocalDate()
@@ -217,7 +219,7 @@ object Stats {
 
         return when {
             spanDays <= 14 -> {
-                val fmt = DateTimeFormatter.ofPattern("d MMM")
+                val fmt = DateTimeFormatter.ofPattern("d MMM", locale)
                 val byDay = inSlice.groupBy { Instant.ofEpochMilli(it.atMillis).atZone(zone).toLocalDate() }
                 generateSequence(startDay) { it.plusDays(1) }.takeWhile { it <= lastDay }
                     .map { day ->
@@ -227,7 +229,7 @@ object Stats {
             }
 
             spanDays <= 120 -> {
-                val fmt = DateTimeFormatter.ofPattern("d MMM")
+                val fmt = DateTimeFormatter.ofPattern("d MMM", locale)
                 val byWeek = inSlice.groupBy {
                     val d = Instant.ofEpochMilli(it.atMillis).atZone(zone).toLocalDate()
                     startDay.plusDays(((d.toEpochDay() - startDay.toEpochDay()) / 7) * 7)
@@ -240,7 +242,7 @@ object Stats {
             }
 
             else -> {
-                val fmt = DateTimeFormatter.ofPattern("MMM uu")
+                val fmt = DateTimeFormatter.ofPattern("MMM uu", locale)
                 val byMonth = inSlice.groupBy { ym(it.atMillis) }
                 generateSequence(YearMonth.from(startDay)) { it.plusMonths(1) }
                     .takeWhile { it <= YearMonth.from(lastDay) }
@@ -600,6 +602,7 @@ object Stats {
         endExclusive: Long,
         currency: String,
         accountId: String? = null,
+        locale: Locale = Locale.getDefault(),
     ): List<TrendPoint> {
         val zone = ZoneId.systemDefault()
         val startDay = Instant.ofEpochMilli(start).atZone(zone).toLocalDate()
@@ -615,7 +618,7 @@ object Stats {
 
         if (totalDays <= 92) {
             val byDay = inSlice.groupBy { Instant.ofEpochMilli(it.atMillis).atZone(zone).toLocalDate() }
-            val fmt = DateTimeFormatter.ofPattern("d MMM")
+            val fmt = DateTimeFormatter.ofPattern("d MMM", locale)
             var day = startDay
             while (day <= lastDay) {
                 byDay[day]?.forEach { t ->
@@ -626,7 +629,7 @@ object Stats {
             }
         } else {
             val byMonth = inSlice.groupBy { ym(it.atMillis) }
-            val fmt = DateTimeFormatter.ofPattern("MMM uu")
+            val fmt = DateTimeFormatter.ofPattern("MMM uu", locale)
             var m = YearMonth.from(startDay)
             val lastMonth = YearMonth.from(lastDay)
             while (m <= lastMonth) {

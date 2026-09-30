@@ -28,10 +28,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.alyaqdhan.riyal.R
 import com.alyaqdhan.riyal.data.Txn
 import java.time.YearMonth
 
@@ -49,8 +52,8 @@ fun PeriodBar(
     modifier: Modifier = Modifier,
     allowFuture: Boolean = false,
 ) {
-    var showPicker by remember { mutableStateOf(false) }
-    var showRange by remember { mutableStateOf(false) }
+    var showPicker by rememberSaveable { mutableStateOf(false) }
+    var showRange by rememberSaveable { mutableStateOf(false) }
 
     Row(
         modifier.fillMaxWidth(),
@@ -58,9 +61,9 @@ fun PeriodBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = { onChange(slice.shifted(back = true)) }) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Earlier period")
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.forms_earlier_period))
         }
-        AnimatedContent(targetState = slice.label, label = "sliceTitle") { label ->
+        AnimatedContent(targetState = timeSliceLabel(slice), label = "sliceTitle") { label ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickable(
@@ -69,21 +72,21 @@ fun PeriodBar(
                 ) { showPicker = true },
             ) {
                 Text(label, style = MaterialTheme.typography.titleMedium)
-                Icon(Icons.Filled.ArrowDropDown, contentDescription = "Pick a period")
+                Icon(Icons.Filled.ArrowDropDown, contentDescription = stringResource(R.string.forms_pick_period))
             }
         }
         IconButton(
             onClick = { onChange(slice.shifted(back = false)) },
             enabled = allowFuture || slice.endExclusive <= System.currentTimeMillis(),
         ) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Later period")
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.forms_later_period))
         }
     }
 
     if (showPicker) {
         AlertDialog(
             onDismissRequest = { showPicker = false },
-            title = { Text("Pick a period") },
+            title = { Text(stringResource(R.string.forms_pick_period)) },
             text = {
                 Column {
                     val now = YearMonth.now()
@@ -91,20 +94,20 @@ fun PeriodBar(
                         onChange(s)
                         showPicker = false
                     }
-                    PickerOption("This month") { choose(TimeSlice.ofMonth(now)) }
-                    PickerOption("Last month") { choose(TimeSlice.ofMonth(now.minusMonths(1))) }
-                    PickerOption("This week") { choose(TimeSlice.thisWeek()) }
-                    PickerOption("Last 3 months") { choose(TimeSlice.lastMonths(3)) }
-                    PickerOption("Last 6 months") { choose(TimeSlice.lastMonths(6)) }
-                    PickerOption("This year") { choose(TimeSlice.thisYear()) }
-                    PickerOption("All time") { choose(TimeSlice.allTime(txns)) }
-                    PickerOption("Custom range…") {
+                    PickerOption(stringResource(R.string.forms_this_month)) { choose(TimeSlice.ofMonth(now)) }
+                    PickerOption(stringResource(R.string.forms_last_month)) { choose(TimeSlice.ofMonth(now.minusMonths(1))) }
+                    PickerOption(stringResource(R.string.forms_this_week)) { choose(TimeSlice.thisWeek()) }
+                    PickerOption(stringResource(R.string.forms_last_three_months)) { choose(TimeSlice.lastMonths(3)) }
+                    PickerOption(stringResource(R.string.forms_last_six_months)) { choose(TimeSlice.lastMonths(6)) }
+                    PickerOption(stringResource(R.string.forms_this_year)) { choose(TimeSlice.thisYear()) }
+                    PickerOption(stringResource(R.string.forms_all_time)) { choose(TimeSlice.allTime(txns)) }
+                    PickerOption(stringResource(R.string.forms_custom_range)) {
                         showPicker = false
                         showRange = true
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { showPicker = false }) { Text("Close") } },
+            confirmButton = { TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.forms_close)) } },
         )
     }
 
@@ -125,9 +128,9 @@ fun PeriodBar(
                         )
                         showRange = false
                     },
-                ) { Text("Apply") }
+                ) { Text(stringResource(R.string.forms_apply)) }
             },
-            dismissButton = { TextButton(onClick = { showRange = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showRange = false }) { Text(stringResource(R.string.forms_cancel)) } },
         ) {
             DateRangePicker(state = rangeState, modifier = Modifier.height(460.dp))
         }

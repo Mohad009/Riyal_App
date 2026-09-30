@@ -58,6 +58,9 @@ abstract class ScreenFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View = ComposeView(requireContext()).apply {
+        // A stable view ID lets rememberSaveable restore an open editor and its draft
+        // after AppCompat recreates this Fragment for an app-language change.
+        id = R.id.screen_compose_view
         setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
         // Named Screen(), not Content(): inside apply {} the ComposeView is the innermost
         // receiver, so an unqualified Content() would resolve to ComposeView.Content() and

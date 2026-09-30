@@ -47,6 +47,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.alyaqdhan.riyal.R
+import com.alyaqdhan.riyal.ui.compose.bidiValue
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -59,7 +64,6 @@ import com.alyaqdhan.riyal.ui.MainViewModel
 import com.alyaqdhan.riyal.ui.compose.CategoryChips
 import com.alyaqdhan.riyal.ui.compose.CategoryOrder
 import com.alyaqdhan.riyal.ui.compose.EmptyState
-import com.alyaqdhan.riyal.ui.compose.countOf
 import com.alyaqdhan.riyal.ui.compose.HelpAction
 import com.alyaqdhan.riyal.ui.compose.FaceStyle
 import com.alyaqdhan.riyal.ui.compose.SectionTitle
@@ -74,16 +78,6 @@ import java.time.format.DateTimeFormatter
  * Everything the screen used to say on the page. It is one explanation, read once, and
  * it sat above a list that is the reason anyone opens this screen.
  */
-private const val HELP =
-    "One row is one place you paid, biggest first. Filing a row files every record " +
-        "under it and remembers the answer, so the same place is never asked about " +
-        "twice.\n\n" +
-        "Open a row to see its records and read the message each came from. Untick any " +
-        "and only the ticked ones are filed, with no rule saved: part of a name is not " +
-        "an answer about the name.\n\n" +
-        "\"Leave the rest under Other\" clears the list without answering it. Those " +
-        "records keep the category they fell back to, and the next scan asks again."
-
 private val recordFmt = DateTimeFormatter.ofPattern("d MMM uu")
 private val recordClockFmt = DateTimeFormatter.ofPattern("h:mm a")
 
@@ -146,13 +140,13 @@ fun NeedsCategoryScreen(vm: MainViewModel, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Needs a category") },
+                title = { Text(stringResource(R.string.management_needs_category)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.management_back))
                     }
                 },
-                actions = { HelpAction("Needs a category", HELP) },
+                actions = { HelpAction(stringResource(R.string.management_needs_category), stringResource(R.string.management_needs_category_help)) },
             )
         },
     ) { padding ->
@@ -163,16 +157,16 @@ fun NeedsCategoryScreen(vm: MainViewModel, onBack: () -> Unit) {
         ) {
             if (groups.isEmpty() && unnamed.isEmpty()) {
                 item(key = "empty") {
-                    // "Everything is filed" over "nothing was decided about them" is
+                    // stringResource(R.string.management_all_filed) over "nothing was decided about them" is
                     // the exact confusion the dialog was written to prevent, so the
                     // title has to know the difference too.
                     EmptyState(
                         style = if (waiting > 0) FaceStyle.SLEEPY else FaceStyle.NORMAL,
-                        title = if (waiting > 0) "Left for next time" else "Everything is filed",
+                        title = if (waiting > 0) stringResource(R.string.management_deferred_title) else stringResource(R.string.management_all_filed),
                         subtitle = if (waiting > 0) {
-                            countOf(waiting, "record") + " are under Other. The next scan asks again."
+                            pluralStringResource(R.plurals.management_deferred_records, waiting, waiting)
                         } else {
-                            "Nothing is waiting for a category."
+                            stringResource(R.string.management_no_category_waiting)
                         },
                         mood = if (waiting > 0) 0f else 0.2f,
                     )
@@ -185,7 +179,11 @@ fun NeedsCategoryScreen(vm: MainViewModel, onBack: () -> Unit) {
                     // What is left to do, and nothing else. The explanation is behind
                     // the (i) and only there.
                     Text(
-                        countOf(records, "record") + " · " + countOf(groups.size, "place"),
+                        stringResource(
+                            R.string.management_records_places_summary,
+                            pluralStringResource(R.plurals.management_record_count, records, records),
+                            pluralStringResource(R.plurals.management_place_count, groups.size, groups.size),
+                        ),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 4.dp),
@@ -206,9 +204,9 @@ fun NeedsCategoryScreen(vm: MainViewModel, onBack: () -> Unit) {
             if (unnamed.isNotEmpty()) {
                 item(key = "unnamed") {
                     Column {
-                        SectionTitle("Can't be grouped")
+                        SectionTitle(stringResource(R.string.management_cannot_group))
                         Text(
-                            countOf(unnamed.size, "record") + " name nobody. File them from Activity.",
+                            pluralStringResource(R.plurals.management_unnamed_records, unnamed.size, unnamed.size),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -223,7 +221,7 @@ fun NeedsCategoryScreen(vm: MainViewModel, onBack: () -> Unit) {
                 Column(Modifier.padding(top = 8.dp)) {
                     HorizontalDivider()
                     TextButton(onClick = { confirmLeave = true }) {
-                        Text("Leave the rest under Other")
+                        Text(stringResource(R.string.management_leave_other))
                     }
                 }
             }
@@ -246,15 +244,14 @@ private fun LeaveAsOtherDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Leave the rest under Other?") },
+        title = { Text(stringResource(R.string.management_leave_other_title)) },
         text = {
             Text(
-                "All $records stay under Other. Nothing is answered, no rule is saved, " +
-                    "and the next scan asks about them again."
+                pluralStringResource(R.plurals.management_leave_other_message, records, records)
             )
         },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Leave under Other") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.management_leave_other_confirm)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.management_cancel)) } },
     )
 }
 
@@ -305,21 +302,23 @@ private fun MerchantCard(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        group.merchant,
+                        bidiValue(group.merchant),
                         style = MaterialTheme.typography.titleSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        countOf(group.count, "record") + " · " +
-                            if (group.type == TxnType.INCOME) "money in" else "money out",
+                        pluralStringResource(
+                            if (group.type == TxnType.INCOME) R.plurals.management_merchant_income_count else R.plurals.management_merchant_expense_count,
+                            group.count, group.count,
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        Money.formatAmount(group.amountMinor, group.currency),
+                        bidiValue(Money.formatAmount(group.amountMinor, group.currency)),
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
@@ -330,14 +329,14 @@ private fun MerchantCard(
                 }
                 Icon(
                     if (open) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                    contentDescription = if (open) "Hide the records" else "Show the records",
+                    contentDescription = if (open) stringResource(R.string.management_hide_records) else stringResource(R.string.management_show_records),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
             if (marked) {
                 Text(
-                    "Always asked · no rule saved",
+                    stringResource(R.string.management_always_asked_hint),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -374,7 +373,7 @@ private fun MerchantCard(
                     // Only worth a control once there is a mixed state to get out of.
                     if (excluded.isNotEmpty()) {
                         TextButton(onClick = { excluded = emptyList() }) {
-                            Text("Select all ${group.count}")
+                            Text(pluralStringResource(R.plurals.management_select_all_records, group.count, group.count))
                         }
                     }
                     HorizontalDivider()
@@ -395,11 +394,11 @@ private fun MerchantCard(
                     // from the ticks above it. The reasoning moved into the help.
                     Text(
                         when {
-                            chosen.isEmpty() -> "Nothing ticked"
+                            chosen.isEmpty() -> stringResource(R.string.management_nothing_selected)
                             chosen.size < group.count ->
-                                "Files ${chosen.size} of ${group.count} · no rule saved"
-                            marked -> "Files all ${group.count} · asked again next time"
-                            else -> "Files all ${group.count} · and future ones"
+                                stringResource(R.string.management_file_some_hint, chosen.size, group.count)
+                            marked -> pluralStringResource(R.plurals.management_file_all_asked, group.count, group.count)
+                            else -> pluralStringResource(R.plurals.management_file_all_future, group.count, group.count)
                         },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -412,7 +411,7 @@ private fun MerchantCard(
                         onClick = { onAskEachTime(!marked) },
                         contentPadding = PaddingValues(horizontal = 4.dp),
                     ) {
-                        Text(if (marked) "Remember this name" else "Always ask for this name")
+                        Text(if (marked) stringResource(R.string.management_remember_name) else stringResource(R.string.management_always_ask_name))
                     }
                 }
             }
@@ -452,13 +451,13 @@ private fun RecordRow(
             Checkbox(checked = checked, onCheckedChange = { onToggle() })
             Column(Modifier.weight(1f)) {
                 Text(
-                    recordFmt.format(localDateOf(txn.atMillis)),
+                    recordFmt.withLocale(LocalConfiguration.current.locales[0]).format(localDateOf(txn.atMillis)),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
-                    recordClockFmt.format(
+                    recordClockFmt.withLocale(LocalConfiguration.current.locales[0]).format(
                         Instant.ofEpochMilli(txn.atMillis).atZone(ZoneId.systemDefault())
-                    ) + " · " + txn.sender,
+                    ) + " · " + bidiValue(txn.sender),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -466,12 +465,12 @@ private fun RecordRow(
                 )
             }
             Text(
-                Money.formatAmount(txn.amountMinor, txn.currency),
+                bidiValue(Money.formatAmount(txn.amountMinor, txn.currency)),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Icon(
                 Icons.Outlined.MailOutline,
-                contentDescription = if (showing) "Hide the message" else "Read the message",
+                contentDescription = if (showing) stringResource(R.string.management_hide_message) else stringResource(R.string.management_read_message),
                 tint = if (showing) {
                     MaterialTheme.colorScheme.primary
                 } else {

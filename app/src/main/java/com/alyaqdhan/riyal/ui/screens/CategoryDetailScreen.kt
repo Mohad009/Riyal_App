@@ -34,8 +34,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.alyaqdhan.riyal.R
+import com.alyaqdhan.riyal.ui.compose.bidiValue
+import androidx.compose.ui.platform.LocalContext
+import com.alyaqdhan.riyal.ui.compose.categoryLabel
+import com.alyaqdhan.riyal.ui.compose.timeSliceLabel
 import androidx.compose.ui.unit.dp
-import com.alyaqdhan.riyal.ui.compose.countOf
 import com.alyaqdhan.riyal.core.Money
 import com.alyaqdhan.riyal.data.Categories
 import com.alyaqdhan.riyal.data.Stats
@@ -71,6 +77,7 @@ fun CategoryDetailScreen(
     onBack: () -> Unit,
     initialSlice: TimeSlice? = null,
 ) {
+    val context = LocalContext.current
     val txns by vm.txns.collectAsState()
     val accounts by vm.accounts.collectAsState()
     val categoryUse by vm.categoryUse.collectAsState()
@@ -109,10 +116,10 @@ fun CategoryDetailScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Text(category.name) },
+                title = { Text(bidiValue(categoryLabel(category))) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.management_back))
                     }
                 },
                 actions = { SortChip(current = order, onSelect = { sort = it.name }) },
@@ -138,12 +145,12 @@ fun CategoryDetailScreen(
                         CategoryBadge(categoryId, size = 56.dp)
                         Column(Modifier.weight(1f)) {
                             Text(
-                                Money.format(total, currency),
+                                bidiValue(Money.format(total, currency)),
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = if (category.income) successColor() else MaterialTheme.colorScheme.onSurface,
                             )
                             Text(
-                                countOf(inCategory.size, "record") + " in ${slice.label}",
+                                pluralStringResource(R.plurals.management_records_in_period, inCategory.size, inCategory.size, timeSliceLabel(slice)),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -154,7 +161,7 @@ fun CategoryDetailScreen(
             }
 
             if (merchants.isNotEmpty()) {
-                item(key = "merchants-title") { SectionTitle("Where it went") }
+                item(key = "merchants-title") { SectionTitle(stringResource(R.string.management_merchants_title)) }
                 items(merchants, key = { "m-" + it.first }) { (merchant, amount) ->
                     Row(
                         Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
@@ -165,18 +172,18 @@ fun CategoryDetailScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f),
                         )
-                        Text(Money.format(amount, currency), style = MaterialTheme.typography.bodyMedium)
+                        Text(bidiValue(Money.format(amount, currency)), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
 
-            item(key = "records-title") { SectionTitle("Records") }
+            item(key = "records-title") { SectionTitle(stringResource(R.string.management_records_title)) }
             if (inCategory.isEmpty()) {
                 item(key = "empty") {
                     EmptyState(
                         style = FaceStyle.SLEEPY,
-                        title = "Nothing here in ${slice.label}",
-                        subtitle = "Step back a period, or pick a wider one from the title above.",
+                        title = stringResource(R.string.management_category_period_empty, timeSliceLabel(slice)),
+                        subtitle = stringResource(R.string.management_category_period_hint),
                     )
                 }
             } else {
@@ -185,8 +192,8 @@ fun CategoryDetailScreen(
                     // each row was permanent deletion one mis-tap away.
                     SwipeableTxnRow(
                         archived = txn.id in archivedIds,
-                        onArchive = { archiveWithUndo(vm, snackbar, scope, txn, txn.id !in archivedIds) },
-                        onDelete = { removeForGood(vm, snackbar, scope, txn) },
+                        onArchive = { archiveWithUndo(context, vm, snackbar, scope, txn, txn.id !in archivedIds) },
+                        onDelete = { removeForGood(context, vm, snackbar, scope, txn) },
                         deleteLabel = deleteLabelFor(txn),
                     ) {
                         TxnRow(txn, onClick = { editing = txn }, accounts = accounts)
@@ -232,10 +239,10 @@ private fun ComparisonLine(now: Long, before: Long, currency: String) {
     if (before <= 0L && now <= 0L) return
     val pct = Stats.deltaPct(now, before)
     val text = when {
-        pct == null -> "nothing in the period before"
-        abs(pct) < 0.005f -> "level with the period before"
-        pct > 0 -> "up ${(pct * 100).roundToInt()}% on ${Money.format(before, currency)} before"
-        else -> "down ${(-pct * 100).roundToInt()}% from ${Money.format(before, currency)} before"
+        pct == null -> stringResource(R.string.management_comparison_no_before)
+        abs(pct) < 0.005f -> stringResource(R.string.management_comparison_same)
+        pct > 0 -> stringResource(R.string.management_comparison_up, (pct * 100).roundToInt(), bidiValue(Money.format(before, currency)))
+        else -> stringResource(R.string.management_comparison_down, (-pct * 100).roundToInt(), bidiValue(Money.format(before, currency)))
     }
     Text(
         text,

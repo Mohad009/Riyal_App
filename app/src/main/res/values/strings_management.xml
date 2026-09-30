@@ -1,0 +1,283 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="management_app_title">Riyal</string>
+    <string name="management_net">Net</string>
+    <string name="management_check_accounts">Check your accounts</string>
+    <string name="management_sms_off">SMS access is off</string>
+    <string name="management_sms_privacy">Reading happens only when you ask, and never leaves this phone.</string>
+    <string name="management_allow_sms">Allow SMS reading</string>
+    <string name="management_needs_review">Needs review</string>
+    <string name="management_file_merchant_hint">One tap files a whole shop</string>
+    <string name="management_recent_activity">Recent activity</string>
+    <string name="management_no_transactions">Nothing recorded yet</string>
+    <string name="management_scan_settings_hint">Settings › Scan now reads your inbox, narrating everything it does.</string>
+    <string name="management_allow_scan_hint">Allow SMS reading, then scan whenever you choose.</string>
+    <string name="management_spent_amount">%1$s out</string>
+    <string name="management_income_amount">%1$s in</string>
+    <plurals name="management_other_currencies">
+        <item quantity="one">+%1$d in other currencies</item>
+        <item quantity="other">+%1$d in other currencies</item>
+    </plurals>
+    <plurals name="management_accounts_read">
+        <item quantity="one">%1$d read from your messages</item>
+        <item quantity="other">%1$d read from your messages</item>
+    </plurals>
+    <plurals name="management_possible_transfers">
+        <item quantity="one">%1$d possible transfer</item>
+        <item quantity="other">%1$d possible transfers</item>
+    </plurals>
+    <plurals name="management_unreadable_messages">
+        <item quantity="one">%1$d unreadable message</item>
+        <item quantity="other">%1$d unreadable messages</item>
+    </plurals>
+    <string name="management_review_prompt">%1$s, tap to decide</string>
+    <plurals name="management_need_category_count">
+        <item quantity="one">%1$d record needs a category</item>
+        <item quantity="other">%1$d records need a category</item>
+    </plurals>
+    <string name="management_release_available">Riyal %1$s is out</string>
+    <string name="management_release_current">You have %1$s · tap for what changed</string>
+    <string name="management_mood_quiet">Quiet month so far</string>
+    <string name="management_mood_no_income">Tracking spending, no income seen yet</string>
+    <string name="management_mood_low">Smooth sailing, well under your income</string>
+    <string name="management_mood_fine">Doing fine, keep an eye on it</string>
+    <string name="management_mood_close">Cutting it close this month</string>
+    <string name="management_mood_above">Spending is above income this month</string>
+    <string name="management_accounts_help">The accounts Riyal found in your bank\'s own messages, and the balance each one last quoted. A balance read out of a text is a good first guess and nothing more, so open any account to set the real figure and the date it was true.\n\nAn account also carries the sender names that belong to it, which is how a message gets routed to the right balance. Archiving one keeps its records, because the money still moved.</string>
+    <string name="management_bank_accounts">Bank accounts</string>
+    <string name="management_back">Back</string>
+    <string name="management_no_accounts">No accounts yet</string>
+    <string name="management_add_account">Add an account</string>
+    <string name="management_delete">Delete</string>
+    <string name="management_cancel">Cancel</string>
+    <string name="management_save">Save</string>
+    <string name="management_confirm_accounts_title">Are these right?</string>
+    <string name="management_confirm_accounts">These are correct</string>
+    <string name="management_total">Total</string>
+    <string name="management_account_no_balance">No balance in any message, tap to set it</string>
+    <string name="management_add_account_title">Add account</string>
+    <string name="management_edit_account">Edit account</string>
+    <string name="management_nickname">Nickname (optional)</string>
+    <string name="management_nickname_hint">Leave it empty and the account is named after its bank and last digits.</string>
+    <string name="management_bank">Bank</string>
+    <string name="management_balance_now">Balance now</string>
+    <string name="management_opening_balance">Opening balance</string>
+    <string name="management_opening_new_hint">Everything Riyal records from now on moves this figure.</string>
+    <string name="management_currency">Currency</string>
+    <string name="management_account_digits">Account ends with (optional)</string>
+    <string name="management_sms_senders">SMS senders</string>
+    <string name="management_sender_example">BankMuscat, NBO</string>
+    <string name="management_senders_hint">Messages from these senders are filed under this account.</string>
+    <string name="management_closed_account">Closed account (hide it from pickers)</string>
+    <string name="management_accounts_empty_hint">Scan your messages and Riyal will set accounts up from what your bank already told you, or add one here by hand.</string>
+    <string name="management_delete_named">Delete %1$s?</string>
+    <string name="management_account_delete_hint">Its transactions are kept, because the money still moved, but they\'ll no longer belong to any account, so they stop counting towards a balance.</string>
+    <plurals name="management_accounts_confirm_missing">
+        <item quantity="one">%1$d account read from your bank\'s texts. One quoted no balance and starts at zero. Tap it to set the real figure.</item>
+        <item quantity="other">%1$d accounts read from your bank\'s texts. One quoted no balance and starts at zero. Tap it to set the real figure.</item>
+    </plurals>
+    <plurals name="management_accounts_confirm_hint">
+        <item quantity="one">%1$d account read from your bank\'s texts. Tap any that look wrong.</item>
+        <item quantity="other">%1$d accounts read from your bank\'s texts. Tap any that look wrong.</item>
+    </plurals>
+    <string name="management_opening_date_hint">The balance as of %1$s. Records after that moment move it.</string>
+    <string name="management_categories_help">Every category and what it came to in the period shown, spending and income kept apart. Open one to see its records; make your own with the button, and edit or delete the ones you made.\n\nBelow them are the names Riyal has learned: the ones it files without asking, and the ones you asked to be asked about every time.</string>
+    <string name="management_categories">Categories</string>
+    <string name="management_spending">Spending</string>
+    <string name="management_income">Income</string>
+    <string name="management_money_out">Money out</string>
+    <string name="management_money_in">Money in</string>
+    <string name="management_expense">Expense</string>
+    <string name="management_hide_empty_categories">Hide empty categories</string>
+    <string name="management_add_category">Add a category</string>
+    <string name="management_learned_title">What Riyal has learned</string>
+    <string name="management_add_keyword">Add a keyword</string>
+    <string name="management_forget_rule">Forget</string>
+    <string name="management_ask_every_time_title">Asked every time</string>
+    <string name="management_never_saved_rule">never saved as a rule</string>
+    <string name="management_remove">Remove</string>
+    <string name="management_edit">Edit</string>
+    <string name="management_no_period_transactions">nothing in this period</string>
+    <string name="management_keyword">Word to look for</string>
+    <string name="management_new_category">New category</string>
+    <string name="management_edit_category">Edit category</string>
+    <string name="management_name">Name</string>
+    <string name="management_icon">Icon</string>
+    <string name="management_color">Colour</string>
+    <string name="management_selected">Selected</string>
+    <plurals name="management_show_empty_categories">
+        <item quantity="one">Show all categories (%1$d empty)</item>
+        <item quantity="other">Show all categories (%1$d empty)</item>
+    </plurals>
+    <string name="management_transfers_no_category">%1$s moved between your own accounts in this period. Transfers have no category: they\'re neither spending nor income.</string>
+    <string name="management_learned_empty">Nothing yet. Filing a record with \"Always\" left on saves the name here, and every later message mentioning it is filed the same way without asking. You can also add a word yourself, below.</string>
+    <string name="management_learned_hint">Names filed without asking, and names always asked about. Forgetting a rule also re-answers the records it had filed.</string>
+    <string name="management_filed_as">filed as %1$s</string>
+    <string name="management_category_delete_hint">Records filed under it move to %1$s. Nothing is lost.</string>
+    <plurals name="management_category_income_count">
+        <item quantity="one">%1$d record · %2$d%% of income</item>
+        <item quantity="other">%1$d records · %2$d%% of income</item>
+    </plurals>
+    <plurals name="management_category_expense_count">
+        <item quantity="one">%1$d record · %2$d%% of spending</item>
+        <item quantity="other">%1$d records · %2$d%% of spending</item>
+    </plurals>
+    <string name="management_open_category">Open %1$s</string>
+    <string name="management_keyword_blocked">\"%1$s\" is a name you asked to be asked about every time, so no rule can be saved for it. Remove it from the list below first.</string>
+    <string name="management_keyword_income_hint">Any money in mentioning \"%1$s\" is filed as %2$s, including records already read. Anything you filed by hand is left alone.</string>
+    <string name="management_keyword_expense_hint">Any money out mentioning \"%1$s\" is filed as %2$s, including records already read. Anything you filed by hand is left alone.</string>
+    <string name="management_keyword_whole_word">Short words are matched whole, so this matches \"%1$s\" on its own and not inside a longer word.</string>
+    <string name="management_icon_food">Food</string>
+    <string name="management_icon_groceries">Groceries</string>
+    <string name="management_icon_transport">Transport</string>
+    <string name="management_icon_telecom">Telecom</string>
+    <string name="management_icon_bills">Bills</string>
+    <string name="management_icon_utilities">Utilities</string>
+    <string name="management_icon_rent">Rent</string>
+    <string name="management_icon_home">Home</string>
+    <string name="management_icon_shopping">Shopping</string>
+    <string name="management_icon_health">Health</string>
+    <string name="management_icon_personalcare">Personal care</string>
+    <string name="management_icon_entertainment">Entertainment</string>
+    <string name="management_icon_subscriptions">Subscriptions</string>
+    <string name="management_icon_travel">Travel</string>
+    <string name="management_icon_education">Education</string>
+    <string name="management_icon_insurance">Insurance</string>
+    <string name="management_icon_loan">Loan</string>
+    <string name="management_icon_charity">Charity</string>
+    <string name="management_icon_giving">Giving</string>
+    <string name="management_icon_government">Government</string>
+    <string name="management_icon_fees">Fees</string>
+    <string name="management_icon_cash">Cash</string>
+    <string name="management_icon_transfer">Transfer</string>
+    <string name="management_icon_salary">Salary</string>
+    <string name="management_icon_business">Business</string>
+    <string name="management_icon_investment">Investment</string>
+    <string name="management_icon_reimbursement">Reimbursement</string>
+    <string name="management_icon_cashback">Cashback</string>
+    <string name="management_icon_refund">Refund</string>
+    <string name="management_icon_gift">Gift</string>
+    <string name="management_icon_income">Income</string>
+    <string name="management_icon_other">Other</string>
+    <string name="management_merchants_title">Where it went</string>
+    <string name="management_records_title">Records</string>
+    <string name="management_category_period_hint">Step back a period, or pick a wider one from the title above.</string>
+    <string name="management_comparison_no_before">nothing in the period before</string>
+    <string name="management_comparison_same">level with the period before</string>
+    <plurals name="management_records_in_period">
+        <item quantity="one">%1$d record in %2$s</item>
+        <item quantity="other">%1$d records in %2$s</item>
+    </plurals>
+    <string name="management_category_period_empty">Nothing here in %1$s</string>
+    <string name="management_comparison_up">up %1$d%% on %2$s before</string>
+    <string name="management_comparison_down">down %1$d%% from %2$s before</string>
+    <string name="management_needs_category_help">One row is one place you paid, biggest first. Filing a row files every record under it and remembers the answer, so the same place is never asked about twice.\n\nOpen a row to see its records and read the message each came from. Untick any and only the ticked ones are filed, with no rule saved: part of a name is not an answer about the name.\n\n\"Leave the rest under Other\" clears the list without answering it. Those records keep the category they fell back to, and the next scan asks again.</string>
+    <string name="management_needs_category">Needs a category</string>
+    <string name="management_deferred_title">Left for next time</string>
+    <string name="management_all_filed">Everything is filed</string>
+    <string name="management_no_category_waiting">Nothing is waiting for a category.</string>
+    <string name="management_cannot_group">Can\'t be grouped</string>
+    <string name="management_leave_other">Leave the rest under Other</string>
+    <string name="management_leave_other_title">Leave the rest under Other?</string>
+    <string name="management_leave_other_confirm">Leave under Other</string>
+    <string name="management_hide_records">Hide the records</string>
+    <string name="management_show_records">Show the records</string>
+    <string name="management_always_asked_hint">Always asked · no rule saved</string>
+    <string name="management_nothing_selected">Nothing ticked</string>
+    <string name="management_remember_name">Remember this name</string>
+    <string name="management_always_ask_name">Always ask for this name</string>
+    <string name="management_hide_message">Hide the message</string>
+    <string name="management_read_message">Read the message</string>
+    <plurals name="management_deferred_records">
+        <item quantity="one">%1$d record is under Other. The next scan asks again.</item>
+        <item quantity="other">%1$d records are under Other. The next scan asks again.</item>
+    </plurals>
+    <plurals name="management_record_count">
+        <item quantity="one">%1$d record</item>
+        <item quantity="other">%1$d records</item>
+    </plurals>
+    <plurals name="management_place_count">
+        <item quantity="one">%1$d place</item>
+        <item quantity="other">%1$d places</item>
+    </plurals>
+    <string name="management_records_places_summary">%1$s · %2$s</string>
+    <plurals name="management_unnamed_records">
+        <item quantity="one">%1$d record names nobody. File it from Activity.</item>
+        <item quantity="other">%1$d records name nobody. File them from Activity.</item>
+    </plurals>
+    <plurals name="management_leave_other_message">
+        <item quantity="one">The %1$d record stays under Other. Nothing is answered, no rule is saved, and the next scan asks about them again.</item>
+        <item quantity="other">All %1$d records stay under Other. Nothing is answered, no rule is saved, and the next scan asks about them again.</item>
+    </plurals>
+    <plurals name="management_merchant_income_count">
+        <item quantity="one">%1$d record · money in</item>
+        <item quantity="other">%1$d records · money in</item>
+    </plurals>
+    <plurals name="management_merchant_expense_count">
+        <item quantity="one">%1$d record · money out</item>
+        <item quantity="other">%1$d records · money out</item>
+    </plurals>
+    <plurals name="management_select_all_records">
+        <item quantity="one">Select the %1$d record</item>
+        <item quantity="other">Select all %1$d records</item>
+    </plurals>
+    <string name="management_file_some_hint">Files %1$d of %2$d · no rule saved</string>
+    <plurals name="management_file_all_asked">
+        <item quantity="one">Files all %1$d · asked again next time</item>
+        <item quantity="other">Files all %1$d · asked again next time</item>
+    </plurals>
+    <plurals name="management_file_all_future">
+        <item quantity="one">Files all %1$d · and future ones</item>
+        <item quantity="other">Files all %1$d · and future ones</item>
+    </plurals>
+    <string name="management_review_help">Messages Riyal could not read on its own. Nothing was recorded for any of them. Resolve one to record it, or dismiss it to say it was never a transaction.\n\nSome show an amount and ask only which way the money went. Those are messages whose wording your keywords do not cover yet - \"your card was used for...\" and the like. Answering records the amount as it stands, and you can adopt the word that confused it so the next one is read automatically.\n\nTransfers appear here too: two messages that look like one movement between your own accounts. Confirming a pair stops it counting as both spending and income.</string>
+    <string name="management_all_clear">All clear</string>
+    <string name="management_nothing_review">All clear, nothing is waiting for you.</string>
+    <string name="management_only_transfers">Nothing unreadable, just the transfers above.</string>
+    <string name="management_nothing_recorded">Nothing was recorded for these. You decide.</string>
+    <string name="management_hide">Hide</string>
+    <string name="management_show">Show</string>
+    <string name="management_which_category">Which category?</string>
+    <string name="management_what_was_this">What was this?</string>
+    <string name="management_unassigned_account">an unassigned account</string>
+    <string name="management_keep_both">No, keep both</string>
+    <string name="management_confirm_transfer">Yes, it\'s a transfer</string>
+    <string name="management_learn_similar_messages">Read messages like this automatically from now on</string>
+    <string name="management_remember_similar">Remember for similar messages</string>
+    <string name="management_dismiss">Dismiss</string>
+    <string name="management_add_manually">Add manually</string>
+    <string name="management_restore">Restore</string>
+    <string name="management_merged_transfer">Merged into one transfer</string>
+    <string name="management_kept_records">Kept as separate records</string>
+    <string name="management_dismissed_future">Dismissed, future ones will be too</string>
+    <string name="management_message_dismissed">Message dismissed</string>
+    <string name="management_restored_review">Restored to review</string>
+    <string name="management_undo">Undo</string>
+    <string name="management_review_empty_hint">When a message matches your keywords but can\'t be read, it waits here for your decision, it is never guessed into your numbers.</string>
+    <plurals name="management_auto_transfers_hint">
+        <item quantity="one">%1$d matching pair was confirmed as a transfer for you, so it counts as neither spending nor income. Open it in Activity to split it back apart, or turn off \"Confirm transfers for me\" in Settings to be asked each time.</item>
+        <item quantity="other">%1$d matching pairs were confirmed as transfers for you, so they count as neither spending nor income. Open one in Activity to split it back apart, or turn off \"Confirm transfers for me\" in Settings to be asked each time.</item>
+    </plurals>
+    <plurals name="management_transfers_to_confirm">
+        <item quantity="one">Transfers to confirm (%1$d)</item>
+        <item quantity="other">Transfers to confirm (%1$d)</item>
+    </plurals>
+    <string name="management_transfer_explanation">Two messages that look like one movement of your own money. Confirm and it stops counting as both spending and income; reject and both stay exactly as they are.</string>
+    <plurals name="management_dismissed_count">
+        <item quantity="one">Dismissed (%1$d)</item>
+        <item quantity="other">Dismissed (%1$d)</item>
+    </plurals>
+    <string name="management_dismissed_hint">Everything you dismissed stays here, nothing is deleted. Restoring one also brings back the similar ones hidden with it, and that kind of message will reach Review again.</string>
+    <plurals name="management_dismissed_similar">
+        <item quantity="one">Dismissed, along with %1$d similar</item>
+        <item quantity="other">Dismissed, along with %1$d similar</item>
+    </plurals>
+    <string name="management_transfer_left">− %1$s left %2$s</string>
+    <string name="management_transfer_arrived">+ %1$s arrived in %2$s</string>
+    <string name="management_reason_no_amount">no amount found</string>
+    <string name="management_reason_balance_only">only balance-like amounts found</string>
+    <string name="management_reason_zero">amount is zero</string>
+    <string name="management_reason_direction">the amount is clear, the direction is not</string>
+    <string name="management_reason_parse">could not parse amount</string>
+    <string name="management_reason_other">Message needs your review</string>
+</resources>

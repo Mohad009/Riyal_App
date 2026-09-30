@@ -5,6 +5,7 @@
     <!-- Messages are read on demand when the user taps Scan, never in the background:
          there is no RECEIVE_SMS and no listener. What is read stays on the device. -->
     <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
     <!-- One destination, one direction. INTERNET exists so the app can ask GitHub's
          public API whether a newer release has been published and download that APK if
@@ -20,10 +21,17 @@
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:localeConfig="@xml/locales_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Riyal"
         tools:targetApi="33">
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data android:name="autoStoreLocales" android:value="true" />
+        </service>
         <activity
             android:name=".MainActivity"
             android:exported="true"
