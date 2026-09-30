@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Local convenience launcher: runs the workflow validator at the revision pinned in docs/workflow/config.json.
+# Feedback only. Authoritative gates use the owner-installed launcher outside this checkout (procedures/setup.md step 6).
+set -euo pipefail
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+CONFIG="$ROOT/docs/workflow/config.json"
+[ -f "$CONFIG" ] || { echo "wf: $CONFIG not found" >&2; exit 2; }
+read -r REPO REV < <(node -e '
+  const c = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).workflow;
+  if (!c.repo || !/^[0-9a-f]{40}$|^[0-9a-f]{64}$/.test(c.revision)) { console.error("wf: workflow.repo and a full workflow.revision must be set"); process.exit(2); }
+  console.log(c.repo, c.revision)' "$CONFIG")
+CACHE="$ROOT/.cache/agent-workflow"
+[ -d "$CACHE/.git" ] || git clone --quiet "https://github.com/$REPO.git" "$CACHE"
+if [ "$(git -C "$CACHE" rev-parse HEAD)" != "$REV" ]; then
+  git -C "$CACHE" fetch --quiet origin && git -C "$CACHE" checkout --quiet --detach "$REV"
+fi
+[ "$(git -C "$CACHE" rev-parse HEAD)" = "$REV" ] || { echo "wf: installation is not at the pinned revision $REV" >&2; exit 2; }
+exec node "$CACHE/validator/cli.js" --repo "$ROOT" "$@"

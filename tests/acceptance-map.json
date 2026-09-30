@@ -1,0 +1,5 @@
+[
+  {"acceptance": "AC-PILOT-01", "file": "app/src/test/java/com/alyaqdhan/riyal/VersionTest.kt", "name": "ten comes after nine, which text and decimals both get wrong"},
+  {"acceptance": "AC-PILOT-02", "file": "app/src/test/java/com/alyaqdhan/riyal/VersionTest.kt", "name": "the same version is not an update"},
+  {"acceptance": "AC-PILOT-03", "file": "app/src/test/java/com/alyaqdhan/riyal/VersionTest.kt", "name": "a tag nobody expected is ignored rather than obeyed"}
+]

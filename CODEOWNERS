@@ -1,0 +1,8 @@
+# Single-owner arrangement from pinned workflow v1.6.2, setup step 5.
+# Activation and approval of this arrangement remain owner bootstrap steps.
+* @Mohad009
+
+# These planning records may merge after checks without owner review.
+# Last matching line wins; keep these exceptions after the default owner.
+/docs/workflow/tasks/
+/docs/workflow/feedback/

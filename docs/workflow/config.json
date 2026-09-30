@@ -1,0 +1,90 @@
+{
+  "workflow": {
+    "repo": "Cazy00/agent-workflow",
+    "version": "v1.6.2",
+    "revision": "5e4e75d31f7e51bc66904b538ef33a30ca0c0ad7"
+  },
+  "records_dir": "docs/workflow",
+  "trusted_branch": "master",
+  "approval": {
+    "mechanism": "manual-signed-receipts",
+    "label": "manual",
+    "approver": "Mohad009",
+    "agent_identity": "ash-dev91"
+  },
+  "setup_budget_days": 2,
+  "paths": {
+    "enforcement": [
+      "docs/workflow/ruleset-draft.json",
+      ".claude/**",
+      "tests/acceptance-map.json",
+      ".github/**",
+      "CODEOWNERS",
+      "docs/workflow/config.json",
+      "scripts/wf",
+      ".githooks/**",
+      "validator/**",
+      "bin/**",
+      "adapters/**",
+      ".agents/**",
+      "procedures/**",
+      "config.default.json",
+      "**/CODEOWNERS"
+    ],
+    "production": [
+      "src/**",
+      "prisma/**",
+      "scripts/**",
+      "public/**",
+      "package.json",
+      "package-lock.json",
+      "tsconfig*.json",
+      "next.config.*",
+      "*.config.*",
+      ".env*",
+      "Dockerfile",
+      "**/*.{sh,sql,ts,tsx,js,mjs,cjs,py,ps1}",
+      "tests/**",
+      "test/**",
+      "infra/**",
+      "infrastructure/**",
+      "migrations/**",
+      "**/Dockerfile*",
+      "**/Makefile",
+      "**/*.{go,rs,java,kt,swift,c,cpp,h,rb,php,tf,tfvars,wasm}",
+      "app/**",
+      "**/*.kts",
+      "gradle/**",
+      "gradle.properties",
+      "gradlew",
+      "gradlew.bat",
+      "RELEASE.md"
+    ],
+    "generated": [],
+    "governing": [
+      "docs/workflow/profile.md",
+      "docs/workflow/decisions/**",
+      "docs/specs/**",
+      "docs/contracts/**",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "docs/workflow/milestones/**",
+      "docs/workflow/acceptance.json"
+    ],
+    "planning": [
+      "docs/workflow/tasks/**",
+      "docs/workflow/feedback/**",
+      "docs/workflow/checkpoints/**",
+      "docs/**",
+      "README.md",
+      "LICENSE",
+      ".gitignore",
+      "evidence/**"
+    ]
+  },
+  "repository": "Mohad009/Riyal_App",
+  "execution": {
+    "mode": "assisted",
+    "runner_adopted": false
+  }
+}

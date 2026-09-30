@@ -1,0 +1,8 @@
+{
+  "examples": [
+    {"id": "AC-PILOT-01", "requirement": "docs/specs/workflow-pilot.md", "method": "automated"},
+    {"id": "AC-PILOT-02", "requirement": "docs/specs/workflow-pilot.md", "method": "automated"},
+    {"id": "AC-PILOT-03", "requirement": "docs/specs/workflow-pilot.md", "method": "automated"},
+    {"id": "AC-PILOT-04", "requirement": "docs/specs/workflow-pilot.md", "method": "operational"}
+  ]
+}
