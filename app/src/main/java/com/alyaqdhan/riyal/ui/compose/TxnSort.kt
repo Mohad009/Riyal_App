@@ -14,6 +14,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import com.alyaqdhan.riyal.R
 import com.alyaqdhan.riyal.data.Txn
 import com.alyaqdhan.riyal.data.TxnType
 
@@ -49,19 +51,27 @@ enum class TxnSort(val label: String, val byDate: Boolean) {
 }
 
 @Composable
+private fun sortLabel(sort: TxnSort): String = stringResource(when (sort) {
+    TxnSort.NEWEST -> R.string.sort_newest
+    TxnSort.OLDEST -> R.string.sort_oldest
+    TxnSort.BIGGEST_OUT -> R.string.sort_biggest_out
+    TxnSort.BIGGEST_IN -> R.string.sort_biggest_in
+})
+
+@Composable
 fun SortChip(current: TxnSort, onSelect: (TxnSort) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         FilterChip(
             selected = current != TxnSort.NEWEST,
             onClick = { open = true },
-            label = { Text(current.label) },
+            label = { Text(sortLabel(current)) },
             trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
         )
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             TxnSort.entries.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option.label) },
+                    text = { Text(sortLabel(option)) },
                     onClick = {
                         onSelect(option)
                         open = false

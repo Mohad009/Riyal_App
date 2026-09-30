@@ -53,14 +53,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.alyaqdhan.riyal.R
+import com.alyaqdhan.riyal.ui.compose.bidiValue
+import com.alyaqdhan.riyal.ui.compose.categoryLabel
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.alyaqdhan.riyal.ui.compose.countOf
 import com.alyaqdhan.riyal.core.Money
 import com.alyaqdhan.riyal.data.Categories
 import com.alyaqdhan.riyal.data.Category
@@ -80,6 +85,7 @@ import com.alyaqdhan.riyal.ui.compose.pressBounce
 import com.alyaqdhan.riyal.ui.compose.rememberCategoryOrder
 import com.alyaqdhan.riyal.ui.theme.successColor
 import kotlin.math.roundToInt
+import java.time.YearMonth
 
 /**
  * Every category, split into what you spend and what you earn, each showing what it
@@ -89,13 +95,6 @@ import kotlin.math.roundToInt
  * buried in Settings, which is a strange place to manage something you look at daily.
  */
 /** What the page is for, behind the (i) rather than above the work. */
-private const val HELP =
-    "Every category and what it came to in the period shown, spending and income " +
-        "kept apart. Open one to see its records; make your own with the button, and " +
-        "edit or delete the ones you made.\n\n" +
-        "Below them are the names Riyal has learned: the ones it files without asking, " +
-        "and the ones you asked to be asked about every time."
-
 @Composable
 fun CategoriesScreen(
     vm: MainViewModel,
@@ -109,11 +108,27 @@ fun CategoriesScreen(
     val askEachTime by vm.askEachTime.collectAsState()
     val categoryUse by vm.categoryUse.collectAsState()
     val currency = remember(txns) { Stats.primaryCurrency(txns, vm.prefs.defaultCurrency) }
-    var slice by remember { mutableStateOf(TimeSlice.thisMonth()) }
-    var editing by remember { mutableStateOf<Category?>(null) }
+    var slice by rememberSaveable(stateSaver = listSaver<TimeSlice, Any>(
+        save = { listOf(it.start, it.endExclusive, it.label, it.month?.toString().orEmpty()) },
+        restore = {
+            TimeSlice(
+                start = it[0] as Long,
+                endExclusive = it[1] as Long,
+                label = it[2] as String,
+                month = (it[3] as String).takeIf(String::isNotEmpty)?.let(YearMonth::parse),
+            )
+        },
+    )) { mutableStateOf(TimeSlice.thisMonth()) }
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var newCategoryColor by rememberSaveable { mutableStateOf(0) }
     var showEmpty by rememberSaveable { mutableStateOf(false) }
-    var confirmDelete by remember { mutableStateOf<Category?>(null) }
-    var addingKeyword by remember { mutableStateOf(false) }
+    var confirmDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
+    var addingKeyword by rememberSaveable { mutableStateOf(false) }
+    val editing = editingId?.let { id ->
+        if (id.isEmpty()) Category(id = "", name = "", color = newCategoryColor)
+        else custom.firstOrNull { it.id == id }
+    }
+    val confirmDelete = custom.firstOrNull { it.id == confirmDeleteId }
 
     val expenses = remember(txns, slice, currency, custom) {
         Stats.breakdownIn(txns, slice.start, slice.endExclusive, currency, type = TxnType.EXPENSE)
@@ -128,13 +143,13 @@ fun CategoriesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Categories") },
+                title = { Text(stringResource(R.string.management_categories)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.management_back))
                     }
                 },
-                actions = { HelpAction("Categories", HELP) },
+                actions = { HelpAction(stringResource(R.string.management_categories), stringResource(R.string.management_categories_help)) },
             )
         },
     ) { padding ->
@@ -152,7 +167,7 @@ fun CategoriesScreen(
                 PeriodBar(slice = slice, onChange = { slice = it }, txns = txns)
             }
 
-            item(key = "expense-title") { SectionTitle("Spending") }
+            item(key = "expense-title") { SectionTitle(stringResource(R.string.management_spending)) }
             val expenseCats = shown(Categories.forType(TxnType.EXPENSE), counts, showEmpty)
             items(expenseCats, key = { "e-" + it.id }) { cat ->
                 val row = expenses.firstOrNull { it.categoryId == cat.id }
@@ -164,11 +179,11 @@ fun CategoriesScreen(
                     currency = currency,
                     income = false,
                     onClick = { onOpenCategory(cat.id, slice) },
-                    onEdit = if (cat.custom) ({ editing = cat }) else null,
+                    onEdit = if (cat.custom) ({ editingId = cat.id }) else null,
                 )
             }
 
-            item(key = "income-title") { SectionTitle("Income") }
+            item(key = "income-title") { SectionTitle(stringResource(R.string.management_income)) }
             val incomeCats = shown(Categories.forType(TxnType.INCOME), counts, showEmpty)
             items(incomeCats, key = { "i-" + it.id }) { cat ->
                 val row = incomes.firstOrNull { it.categoryId == cat.id }
@@ -180,7 +195,7 @@ fun CategoriesScreen(
                     currency = currency,
                     income = true,
                     onClick = { onOpenCategory(cat.id, slice) },
-                    onEdit = if (cat.custom) ({ editing = cat }) else null,
+                    onEdit = if (cat.custom) ({ editingId = cat.id }) else null,
                 )
             }
 
@@ -195,8 +210,8 @@ fun CategoriesScreen(
                         modifier = Modifier.padding(top = 4.dp),
                     ) {
                         Text(
-                            if (showEmpty) "Hide empty categories"
-                            else "Show all categories ($hidden empty)"
+                            if (showEmpty) stringResource(R.string.management_hide_empty_categories)
+                            else pluralStringResource(R.plurals.management_show_empty_categories, hidden, hidden)
                         )
                     }
                 }
@@ -206,8 +221,7 @@ fun CategoriesScreen(
                 val moved = Stats.transferTotalIn(txns, slice.start, slice.endExclusive, currency)
                 if (moved > 0) {
                     Text(
-                        "${Money.format(moved, currency)} moved between your own accounts in this " +
-                            "period. Transfers have no category: they're neither spending nor income.",
+                        stringResource(R.string.management_transfers_no_category, Money.format(moved, currency)),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 12.dp),
@@ -217,25 +231,25 @@ fun CategoriesScreen(
 
             item(key = "add") {
                 FilledTonalButton(
-                    onClick = { editing = Category(id = "", name = "", color = Categories.PALETTE.random()) },
+                    onClick = {
+                        newCategoryColor = Categories.PALETTE.random()
+                        editingId = ""
+                    },
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp).pressBounce(),
-                ) { Text("Add a category") }
+                ) { Text(stringResource(R.string.management_add_category)) }
             }
 
             // What the app has been taught, and the only place it can be untaught. A
             // rule re-files past records as well as future ones, which is too much to
             // do invisibly: it should be possible to read back every name that was
             // learned and take any of them away.
-            item(key = "learned-title") { SectionTitle("What Riyal has learned") }
+            item(key = "learned-title") { SectionTitle(stringResource(R.string.management_learned_title)) }
             item(key = "learned-intro") {
                 Text(
                     if (rules.isEmpty() && askEachTime.isEmpty()) {
-                        "Nothing yet. Filing a record with \"Always\" left on saves the name " +
-                            "here, and every later message mentioning it is filed the same way " +
-                            "without asking. You can also add a word yourself, below."
+                        stringResource(R.string.management_learned_empty)
                     } else {
-                        "Names filed without asking, and names always asked about. Forgetting " +
-                            "a rule also re-answers the records it had filed."
+                        stringResource(R.string.management_learned_hint)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -246,22 +260,22 @@ fun CategoriesScreen(
                 FilledTonalButton(
                     onClick = { addingKeyword = true },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).pressBounce(),
-                ) { Text("Add a keyword") }
+                ) { Text(stringResource(R.string.management_add_keyword)) }
             }
             val sortedRules = rules.sortedBy { it.pattern }
             items(sortedRules, key = { "rule-" + it.pattern + "-" + it.categoryId }) { rule ->
                 LearnedRow(
                     name = rule.pattern,
-                    detail = "filed as ${Categories.byId(rule.categoryId).name}",
+                    detail = stringResource(R.string.management_filed_as, bidiValue(categoryLabel(Categories.byId(rule.categoryId)))),
                     categoryId = rule.categoryId,
-                    actionLabel = "Forget",
+                    actionLabel = stringResource(R.string.management_forget_rule),
                     onAction = { vm.removeRule(rule.pattern) },
                 )
             }
             if (askEachTime.isNotEmpty()) {
                 item(key = "asked-title") {
                     Text(
-                        "Asked every time",
+                        stringResource(R.string.management_ask_every_time_title),
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
                     )
@@ -269,9 +283,9 @@ fun CategoriesScreen(
                 items(askEachTime.sorted(), key = { "ask-$it" }) { name ->
                     LearnedRow(
                         name = name,
-                        detail = "never saved as a rule",
+                        detail = stringResource(R.string.management_never_saved_rule),
                         categoryId = null,
-                        actionLabel = "Remove",
+                        actionLabel = stringResource(R.string.management_remove),
                         onAction = { vm.setAskEachTime(name, false) },
                     )
                 }
@@ -297,35 +311,37 @@ fun CategoriesScreen(
             onSave = { name, income, color, icon ->
                 if (cat.id.isBlank()) vm.addCategory(name, income, color, icon)
                 else vm.updateCategory(cat.id, name, color, icon)
-                editing = null
+                editingId = null
             },
             onDelete = if (cat.id.isNotBlank()) ({
-                confirmDelete = cat
-                editing = null
+                confirmDeleteId = cat.id
+                editingId = null
             }) else null,
-            onDismiss = { editing = null },
+            onDismiss = { editingId = null },
         )
     }
 
     confirmDelete?.let { cat ->
         AlertDialog(
-            onDismissRequest = { confirmDelete = null },
-            title = { Text("Delete ${cat.name}?") },
+            onDismissRequest = { confirmDeleteId = null },
+            title = { Text(stringResource(R.string.management_delete_named, bidiValue(categoryLabel(cat)))) },
             text = {
                 Text(
-                    "Records filed under it move to " +
-                        (if (cat.income) Categories.byId(Categories.DEFAULT_INCOME).name
-                        else Categories.byId(Categories.DEFAULT_EXPENSE).name) +
-                        ". Nothing is lost."
+                    stringResource(
+                        R.string.management_category_delete_hint,
+                        bidiValue(categoryLabel(Categories.byId(
+                            if (cat.income) Categories.DEFAULT_INCOME else Categories.DEFAULT_EXPENSE
+                        ))),
+                    )
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     vm.deleteCategory(cat.id)
-                    confirmDelete = null
-                }) { Text("Delete") }
+                    confirmDeleteId = null
+                }) { Text(stringResource(R.string.management_delete)) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { confirmDeleteId = null }) { Text(stringResource(R.string.management_cancel)) } },
         )
     }
 }
@@ -357,17 +373,20 @@ private fun CategoryRow(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        category.name,
+                        bidiValue(categoryLabel(category)),
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.weight(1f),
                     )
                     if (onEdit != null) {
-                        TextButton(onClick = onEdit) { Text("Edit") }
+                        TextButton(onClick = onEdit) { Text(stringResource(R.string.management_edit)) }
                     }
                 }
                 Text(
-                    if (count == 0) "nothing in this period"
-                    else countOf(count, "record") + " · ${(fraction * 100).roundToInt()}% of ${if (income) "income" else "spending"}",
+                    if (count == 0) stringResource(R.string.management_no_period_transactions)
+                    else pluralStringResource(
+                        if (income) R.plurals.management_category_income_count else R.plurals.management_category_expense_count,
+                        count, count, (fraction * 100).roundToInt(),
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -382,7 +401,7 @@ private fun CategoryRow(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    Money.format(amountMinor, currency),
+                    bidiValue(Money.format(amountMinor, currency)),
                     style = MaterialTheme.typography.titleSmall,
                     color = when {
                         !used -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -393,7 +412,7 @@ private fun CategoryRow(
             }
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "Open ${category.name}",
+                contentDescription = stringResource(R.string.management_open_category, bidiValue(categoryLabel(category))),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
@@ -453,9 +472,9 @@ private fun KeywordRuleDialog(
     onSave: (pattern: String, categoryId: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var text by remember { mutableStateOf("") }
-    var income by remember { mutableStateOf(false) }
-    var categoryId by remember { mutableStateOf(Categories.DEFAULT_EXPENSE) }
+    var text by rememberSaveable { mutableStateOf("") }
+    var income by rememberSaveable { mutableStateOf(false) }
+    var categoryId by rememberSaveable { mutableStateOf(Categories.DEFAULT_EXPENSE) }
     val order = rememberCategoryOrder(categoryUse)
 
     val type = if (income) TxnType.INCOME else TxnType.EXPENSE
@@ -468,7 +487,7 @@ private fun KeywordRuleDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add a keyword") },
+        title = { Text(stringResource(R.string.management_add_keyword)) },
         text = {
             Column(
                 Modifier.verticalScroll(rememberScrollState()),
@@ -477,7 +496,7 @@ private fun KeywordRuleDialog(
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
-                    label = { Text("Word to look for") },
+                    label = { Text(stringResource(R.string.management_keyword)) },
                     singleLine = true,
                     isError = blocked,
                 )
@@ -490,7 +509,7 @@ private fun KeywordRuleDialog(
                         },
                         shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                         modifier = Modifier.weight(1f),
-                    ) { Text("Money out", softWrap = false, maxLines = 1) }
+                    ) { Text(stringResource(R.string.management_money_out), softWrap = false, maxLines = 1) }
                     SegmentedButton(
                         selected = income,
                         onClick = {
@@ -499,7 +518,7 @@ private fun KeywordRuleDialog(
                         },
                         shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                         modifier = Modifier.weight(1f),
-                    ) { Text("Money in", softWrap = false, maxLines = 1) }
+                    ) { Text(stringResource(R.string.management_money_in), softWrap = false, maxLines = 1) }
                 }
                 CategoryChips(
                     type = type,
@@ -509,24 +528,22 @@ private fun KeywordRuleDialog(
                 )
                 if (blocked) {
                     Text(
-                        "\"$pattern\" is a name you asked to be asked about every time, so no " +
-                            "rule can be saved for it. Remove it from the list below first.",
+                        stringResource(R.string.management_keyword_blocked, pattern),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                     )
                 } else if (pattern.isNotBlank()) {
                     Text(
-                        "Any " + (if (income) "money in" else "money out") +
-                            " mentioning \"$pattern\" is filed as " +
-                            "${Categories.byId(categoryId).name}, including records already " +
-                            "read. Anything you filed by hand is left alone.",
+                        stringResource(
+                        if (income) R.string.management_keyword_income_hint else R.string.management_keyword_expense_hint,
+                        pattern, bidiValue(categoryLabel(Categories.byId(categoryId))),
+                    ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (wholeWord) {
                         Text(
-                            "Short words are matched whole, so this matches \"$pattern\" on its " +
-                                "own and not inside a longer word.",
+                            stringResource(R.string.management_keyword_whole_word, pattern),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -538,9 +555,9 @@ private fun KeywordRuleDialog(
             TextButton(
                 enabled = pattern.isNotBlank() && !blocked,
                 onClick = { onSave(pattern, categoryId) },
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.management_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.management_cancel)) } },
     )
 }
 
@@ -553,16 +570,16 @@ private fun CategoryEditorDialog(
     onDismiss: () -> Unit,
 ) {
     val isNew = category.id.isBlank()
-    var name by remember { mutableStateOf(category.name) }
-    var income by remember { mutableStateOf(category.income) }
-    var color by remember {
+    var name by rememberSaveable { mutableStateOf(category.name) }
+    var income by rememberSaveable { mutableStateOf(category.income) }
+    var color by rememberSaveable {
         mutableStateOf(if (category.color != 0) category.color else Categories.PALETTE.first())
     }
-    var icon by remember { mutableStateOf(category.icon.ifBlank { CategoryVisuals.KEYS.first() }) }
+    var icon by rememberSaveable { mutableStateOf(category.icon.ifBlank { CategoryVisuals.KEYS.first() }) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isNew) "New category" else "Edit category") },
+        title = { Text(if (isNew) stringResource(R.string.management_new_category) else stringResource(R.string.management_edit_category)) },
         text = {
             Column(
                 Modifier.verticalScroll(rememberScrollState()),
@@ -571,7 +588,7 @@ private fun CategoryEditorDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name") },
+                    label = { Text(stringResource(R.string.management_name)) },
                     singleLine = true,
                 )
                 if (isNew) {
@@ -583,19 +600,19 @@ private fun CategoryEditorDialog(
                             onClick = { income = false },
                             shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                             modifier = Modifier.weight(1f),
-                        ) { Text("Expense", softWrap = false, maxLines = 1) }
+                        ) { Text(stringResource(R.string.management_expense), softWrap = false, maxLines = 1) }
                         SegmentedButton(
                             selected = income,
                             onClick = { income = true },
                             shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                             modifier = Modifier.weight(1f),
-                        ) { Text("Income", softWrap = false, maxLines = 1) }
+                        ) { Text(stringResource(R.string.management_income), softWrap = false, maxLines = 1) }
                     }
                 }
                 // Shown above the swatches because the icon is what the badge reads as
                 // at a glance in a list; the colour only tells it apart from its
                 // neighbours.
-                Text("Icon", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.management_icon), style = MaterialTheme.typography.labelLarge)
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -627,7 +644,41 @@ private fun CategoryEditorDialog(
                         ) {
                             Icon(
                                 painterResource(CategoryVisuals.byKey(key)),
-                                contentDescription = key,
+                                contentDescription = stringResource(when (key) {
+                                    "food" -> R.string.management_icon_food
+                                    "groceries" -> R.string.management_icon_groceries
+                                    "transport" -> R.string.management_icon_transport
+                                    "telecom" -> R.string.management_icon_telecom
+                                    "bills" -> R.string.management_icon_bills
+                                    "utilities" -> R.string.management_icon_utilities
+                                    "rent" -> R.string.management_icon_rent
+                                    "home" -> R.string.management_icon_home
+                                    "shopping" -> R.string.management_icon_shopping
+                                    "health" -> R.string.management_icon_health
+                                    "personalcare" -> R.string.management_icon_personalcare
+                                    "entertainment" -> R.string.management_icon_entertainment
+                                    "subscriptions" -> R.string.management_icon_subscriptions
+                                    "travel" -> R.string.management_icon_travel
+                                    "education" -> R.string.management_icon_education
+                                    "insurance" -> R.string.management_icon_insurance
+                                    "loan" -> R.string.management_icon_loan
+                                    "charity" -> R.string.management_icon_charity
+                                    "giving" -> R.string.management_icon_giving
+                                    "government" -> R.string.management_icon_government
+                                    "fees" -> R.string.management_icon_fees
+                                    "cash" -> R.string.management_icon_cash
+                                    "transfer" -> R.string.management_icon_transfer
+                                    "salary" -> R.string.management_icon_salary
+                                    "business" -> R.string.management_icon_business
+                                    "investment" -> R.string.management_icon_investment
+                                    "reimbursement" -> R.string.management_icon_reimbursement
+                                    "cashback" -> R.string.management_icon_cashback
+                                    "refund" -> R.string.management_icon_refund
+                                    "gift" -> R.string.management_icon_gift
+                                    "income" -> R.string.management_icon_income
+                                    "other" -> R.string.management_icon_other
+                                    else -> R.string.management_icon_other
+                                }),
                                 tint = if (picked) Color(color)
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(22.dp),
@@ -635,7 +686,7 @@ private fun CategoryEditorDialog(
                         }
                     }
                 }
-                Text("Colour", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.management_color), style = MaterialTheme.typography.labelLarge)
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -652,7 +703,7 @@ private fun CategoryEditorDialog(
                             if (swatch == color) {
                                 Icon(
                                     Icons.Filled.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = stringResource(R.string.management_selected),
                                     tint = Color.White,
                                     modifier = Modifier.size(18.dp),
                                 )
@@ -666,14 +717,14 @@ private fun CategoryEditorDialog(
             TextButton(
                 enabled = name.isNotBlank(),
                 onClick = { onSave(name.trim(), income, color, icon) },
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.management_save)) }
         },
         dismissButton = {
             Row {
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) { Text("Delete") }
+                    TextButton(onClick = onDelete) { Text(stringResource(R.string.management_delete)) }
                 }
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.management_cancel)) }
             }
         },
     )

@@ -7,6 +7,12 @@
 package com.alyaqdhan.riyal.ui.compose
 
 import android.content.ClipData
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.alyaqdhan.riyal.R
+import java.util.Locale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -39,6 +45,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
@@ -65,9 +72,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.alyaqdhan.riyal.ui.compose.countOf
 import com.alyaqdhan.riyal.core.Money
 import com.alyaqdhan.riyal.core.Verbose
 import com.alyaqdhan.riyal.data.Account
@@ -89,10 +96,39 @@ val CURRENCIES = listOf("OMR", "SAR", "AED", "KWD", "BHD", "QAR", "USD", "EUR", 
 fun plainText(text: String): ClipEntry = ClipEntry(ClipData.newPlainText("riyal", text))
 
 /** How each operation type is labelled everywhere the user picks one. */
-fun typeLabel(type: TxnType): String = when (type) {
-    TxnType.EXPENSE -> "Money out"
-    TxnType.INCOME -> "Money in"
-    TxnType.TRANSFER -> "Transfer"
+@Composable
+fun typeLabel(type: TxnType): String = stringResource(when (type) {
+    TxnType.EXPENSE -> R.string.forms_expense
+    TxnType.INCOME -> R.string.forms_income
+    TxnType.TRANSFER -> R.string.forms_transfer
+})
+
+@Composable
+fun scanPhaseLabel(phase: String): String = stringResource(when (phase) {
+    "Working out your accounts" -> R.string.forms_scan_accounts
+    "Building your records" -> R.string.forms_scan_records
+    "Looking for transfers between your accounts" -> R.string.forms_scan_transfers
+    "Saving" -> R.string.forms_scan_saving
+    else -> R.string.forms_scan_reading
+})
+
+@Composable
+fun scanNounLabel(noun: String): String = stringResource(
+    if (noun == "records") R.string.forms_records else R.string.forms_messages,
+)
+
+/** Only exact, stable audit lines can be translated without reinterpreting parser/source data. */
+@Composable
+private fun scanLogLabel(raw: String): String = when (raw) {
+    "──────── scan started ────────" -> stringResource(R.string.forms_log_started)
+    "mode: manual one-shot, this app has no background receiver" -> stringResource(R.string.forms_log_manual)
+    "sender filters OFF: every sender is considered (bodies are still keyword-gated)" ->
+        stringResource(R.string.forms_log_filter_off)
+    "    → added to Review so you decide what it was" -> stringResource(R.string.forms_log_review)
+    "skipped messages were never stored; only their count was kept" -> stringResource(R.string.forms_log_skipped)
+    "scan requested, but READ_SMS is not granted, nothing was read" -> stringResource(R.string.forms_log_permission)
+    "scan aborted: the system refused the SMS read (permission revoked?)" -> stringResource(R.string.forms_log_revoked)
+    else -> raw
 }
 
 /**
@@ -105,6 +141,9 @@ fun ScanSheetHost(vm: MainViewModel) {
     val visible by vm.scanSheetVisible.collectAsState()
     if (!visible) return
 
+    val isArabic = LocalConfiguration.current.locales[0].language == "ar"
+    var showOriginalLog by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(isArabic) { if (isArabic) showOriginalLog = false }
     val scan by vm.scanState.collectAsState()
     val lines by Verbose.lines.collectAsState()
     val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
@@ -132,9 +171,12 @@ fun ScanSheetHost(vm: MainViewModel) {
                         // Material 3 Expressive shape-morphing loading indicator
                         LoadingIndicator(Modifier.size(52.dp))
                         Column {
-                            Text(s.phase + "…", style = MaterialTheme.typography.titleLarge)
+                            Text(scanPhaseLabel(s.phase), style = MaterialTheme.typography.titleLarge)
                             Text(
-                                if (s.total > 0) "${s.processed} / ${s.total} ${s.noun}" else "querying the inbox…",
+                                if (s.total > 0) stringResource(
+                                    if (s.noun == "records") R.string.forms_scan_record_progress
+                                    else R.string.forms_scan_message_progress, s.processed, s.total,
+                                ) else stringResource(R.string.forms_scan_querying),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -158,9 +200,10 @@ fun ScanSheetHost(vm: MainViewModel) {
                     ) {
                         Face(mood = 1f, modifier = Modifier.size(64.dp).popIn())
                         Column {
-                            Text("Scan complete", style = MaterialTheme.typography.titleLarge)
+                            Text(stringResource(R.string.forms_scan_complete), style = MaterialTheme.typography.titleLarge)
                             Text(
-                                "took ${"%.1f".format(s.summary.tookMs / 1000f)}s · ${s.summary.scanned} messages checked",
+                                pluralStringResource(R.plurals.forms_scan_summary, s.summary.scanned,
+                                    String.format(Locale.US, "%.1f", s.summary.tookMs / 1000f), s.summary.scanned),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -172,26 +215,26 @@ fun ScanSheetHost(vm: MainViewModel) {
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         SummaryPill(
-                            "✓ ${s.summary.parsed} recorded",
+                            pluralStringResource(R.plurals.forms_scan_recorded, s.summary.parsed, s.summary.parsed),
                             MaterialTheme.colorScheme.primaryContainer,
                             MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                         if (s.summary.transfers > 0) {
                             SummaryPill(
-                                "⇄ " + countOf(s.summary.transfers, "possible transfer"),
+                                pluralStringResource(R.plurals.forms_scan_possible_transfers, s.summary.transfers, s.summary.transfers),
                                 MaterialTheme.colorScheme.tertiaryContainer,
                                 MaterialTheme.colorScheme.onTertiaryContainer,
                             )
                         }
                         SummaryPill(
-                            "? ${s.summary.review} need you",
+                            pluralStringResource(R.plurals.forms_scan_review, s.summary.review, s.summary.review),
                             if (s.summary.review > 0) MaterialTheme.colorScheme.errorContainer
                             else MaterialTheme.colorScheme.surfaceContainerHigh,
                             if (s.summary.review > 0) MaterialTheme.colorScheme.onErrorContainer
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         SummaryPill(
-                            "${s.summary.skipped} skipped, never stored",
+                            pluralStringResource(R.plurals.forms_scan_skipped, s.summary.skipped, s.summary.skipped),
                             MaterialTheme.colorScheme.surfaceContainerHigh,
                             MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -204,9 +247,9 @@ fun ScanSheetHost(vm: MainViewModel) {
                 ) {
                     Face(mood = -1f, style = FaceStyle.DIZZY, modifier = Modifier.size(64.dp).popIn())
                     Column {
-                        Text("Scan didn't finish", style = MaterialTheme.typography.titleLarge)
+                        Text(stringResource(R.string.forms_scan_failed), style = MaterialTheme.typography.titleLarge)
                         Text(
-                            s.message,
+                            stringResource(s.messageRes),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -222,12 +265,15 @@ fun ScanSheetHost(vm: MainViewModel) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Verbose processing log", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.forms_scan_log), style = MaterialTheme.typography.labelLarge)
                 TextButton(onClick = {
                     scope.launch { clipboard.setClipEntry(plainText(Verbose.dump())) }
                 }) {
-                    Text("Copy")
+                    Text(stringResource(R.string.forms_copy))
                 }
+            }
+            if (isArabic) TextButton(onClick = { showOriginalLog = !showOriginalLog }) {
+                Text(stringResource(if (showOriginalLog) R.string.forms_hide_original_log else R.string.forms_show_original_log))
             }
             Surface(
                 shape = RoundedCornerShape(16.dp),
@@ -236,11 +282,18 @@ fun ScanSheetHost(vm: MainViewModel) {
                     .weight(1f)
                     .fillMaxWidth(),
             ) {
-                LazyColumn(
-                    state = listState,
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
-                ) {
-                    items(lines) { LogRow(it) }
+                if (isArabic && !showOriginalLog) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.forms_log_original_notice), style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.forms_log_copy_notice), style = MaterialTheme.typography.bodySmall)
+                    }
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
+                    ) {
+                        items(lines) { LogRow(it.copy(text = scanLogLabel(it.text))) }
+                    }
                 }
             }
             Button(
@@ -250,7 +303,7 @@ fun ScanSheetHost(vm: MainViewModel) {
                     .padding(vertical = 16.dp)
                     .pressBounce(),
             ) {
-                Text(if (scan is MainViewModel.ScanState.Running) "Hide, scanning continues" else "Close")
+                Text(if (scan is MainViewModel.ScanState.Running) stringResource(R.string.forms_scan_hide) else stringResource(R.string.forms_close))
             }
         }
     }
@@ -282,8 +335,8 @@ fun TxnEditSheet(
     val order = rememberCategoryOrder(categoryUse)
     val pattern = txn.merchant?.takeIf { it.isNotBlank() }?.let { UserRule.patternOf(it) }
     val marked = pattern != null && pattern in askEachTime
-    var makeRule by remember { mutableStateOf(rememberByDefault && pattern != null && !marked) }
-    var transferTarget by remember { mutableStateOf(false) }
+    var makeRule by rememberSaveable(txn.id) { mutableStateOf(rememberByDefault && pattern != null && !marked) }
+    var transferTarget by rememberSaveable(txn.id) { mutableStateOf(false) }
     val live = accounts.filter { !it.archived }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
@@ -294,16 +347,16 @@ fun TxnEditSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                if (txn.isTransfer) "Transfer" else "Pick a category",
+                if (txn.isTransfer) stringResource(R.string.forms_transfer) else stringResource(R.string.forms_pick_category),
                 style = MaterialTheme.typography.titleLarge,
             )
             Column {
                 Text(
-                    txn.merchant ?: txn.sender,
+                    bidiValue(txn.merchant ?: txn.sender),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    txn.body,
+                    bidiValue(txn.body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 3,
@@ -313,8 +366,7 @@ fun TxnEditSheet(
 
             if (txn.isTransfer) {
                 Text(
-                    "This is recorded as money moved between your own accounts, so it counts " +
-                        "as neither spending nor income.",
+                    stringResource(R.string.forms_transfer_explanation),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -326,8 +378,8 @@ fun TxnEditSheet(
                         modifier = Modifier.fillMaxWidth().pressBounce(),
                     ) {
                         Text(
-                            if (txn.legIds.size == 2) "It wasn't a transfer, split it back"
-                            else "It wasn't a transfer, undo this"
+                            if (txn.legIds.size == 2) stringResource(R.string.forms_split_transfer)
+                            else stringResource(R.string.forms_undo_transfer)
                         )
                     }
                 }
@@ -349,7 +401,7 @@ fun TxnEditSheet(
                             onCheckedChange = { makeRule = it },
                         )
                         Text(
-                            "Always: anything mentioning \"${txn.merchant}\" gets the category I pick",
+                            stringResource(R.string.forms_remember_merchant, bidiValue(txn.merchant.orEmpty())),
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (marked) MaterialTheme.colorScheme.onSurfaceVariant
                             else MaterialTheme.colorScheme.onSurface,
@@ -357,7 +409,7 @@ fun TxnEditSheet(
                     }
                     if (marked) {
                         Text(
-                            "You asked to be asked each time for this name.",
+                            stringResource(R.string.forms_ask_marked),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -368,8 +420,8 @@ fun TxnEditSheet(
                     if (onAskEachTime != null) {
                         TextButton(onClick = { onAskEachTime(!marked) }) {
                             Text(
-                                if (marked) "Remember this name after all"
-                                else "Always ask for this name"
+                                if (marked) stringResource(R.string.forms_remember_name)
+                                else stringResource(R.string.forms_ask_name)
                             )
                         }
                     }
@@ -379,12 +431,12 @@ fun TxnEditSheet(
             if (live.isNotEmpty() && (onSetAccount != null || onMarkTransfer != null)) {
                 HorizontalDivider()
                 if (onSetAccount != null && !txn.isTransfer) {
-                    Text("Account", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.forms_account), style = MaterialTheme.typography.labelLarge)
                     Text(
                         if (txn.accountId == null) {
-                            "The bank didn't say which account this was, so it isn't in any balance yet."
+                            stringResource(R.string.forms_unassigned_account)
                         } else {
-                            "Move this record to a different account."
+                            stringResource(R.string.forms_move_account)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -394,7 +446,7 @@ fun TxnEditSheet(
                             FilterChip(
                                 selected = acc.id == txn.accountId,
                                 onClick = { onSetAccount(acc.id) },
-                                label = { Text(acc.displayName) },
+                                label = { Text(bidiValue(acc.displayName)) },
                                 modifier = Modifier.pressBounce(0.92f),
                             )
                         }
@@ -406,12 +458,12 @@ fun TxnEditSheet(
                 if (onMarkTransfer != null && !txn.isTransfer && otherAccounts.isNotEmpty()) {
                     if (!transferTarget) {
                         TextButton(onClick = { transferTarget = true }) {
-                            Text("⇄  This was a transfer between my accounts")
+                            Text(stringResource(R.string.forms_mark_transfer))
                         }
                     } else {
                         Text(
-                            if (txn.isExpense) "Which account did it arrive in?"
-                            else "Which account did it leave?",
+                            if (txn.isExpense) stringResource(R.string.forms_transfer_arrived)
+                            else stringResource(R.string.forms_transfer_left),
                             style = MaterialTheme.typography.labelLarge,
                         )
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -425,7 +477,7 @@ fun TxnEditSheet(
                                             onMarkTransfer(acc.id, txn.accountId)
                                         }
                                     },
-                                    label = { Text(acc.displayName) },
+                                    label = { Text(bidiValue(acc.displayName)) },
                                     modifier = Modifier.pressBounce(0.92f),
                                 )
                             }
@@ -467,23 +519,23 @@ fun ManualTxnDialog(
     val live = remember(accounts) { accounts.filter { !it.archived } }
     val order = rememberCategoryOrder(categoryUse)
     val startCurrency = initialCurrency ?: defaultCurrency
-    var amount by remember {
+    var amount by rememberSaveable {
         mutableStateOf(
             initialAmountMinor?.let { Money.formatAmount(it, startCurrency).replace(",", "") } ?: ""
         )
     }
-    var currency by remember { mutableStateOf(startCurrency) }
-    var type by remember { mutableStateOf(initialType ?: TxnType.EXPENSE) }
-    var merchant by remember { mutableStateOf("") }
-    var categoryId by remember { mutableStateOf(Categories.DEFAULT_EXPENSE) }
-    var fromAccount by remember { mutableStateOf(live.firstOrNull()) }
-    var toAccount by remember { mutableStateOf(live.getOrNull(1) ?: live.firstOrNull()) }
+    var currency by rememberSaveable { mutableStateOf(startCurrency) }
+    var type by rememberSaveable { mutableStateOf(initialType ?: TxnType.EXPENSE) }
+    var merchant by rememberSaveable { mutableStateOf("") }
+    var categoryId by rememberSaveable { mutableStateOf(Categories.defaultFor(initialType ?: TxnType.EXPENSE)) }
+    var fromAccountId by rememberSaveable { mutableStateOf(live.firstOrNull()?.id) }
+    var toAccountId by rememberSaveable { mutableStateOf((live.getOrNull(1) ?: live.firstOrNull())?.id) }
+    val fromAccount = live.firstOrNull { it.id == fromAccountId }
+    val toAccount = live.firstOrNull { it.id == toAccountId }
 
-    LaunchedEffect(type) {
-        categoryId = Categories.defaultFor(type)
-    }
     val parsed = amount.trim().replace(",", "").toBigDecimalOrNull()
-    val dateFmt = remember { DateTimeFormatter.ofPattern("dd MMM uuuu, h:mm a") }
+    val locale = LocalConfiguration.current.locales[0]
+    val dateFmt = remember(locale) { DateTimeFormatter.ofPattern("dd MMM uuuu, h:mm a", locale) }
     // A transfer needs two different ends, otherwise it isn't a movement at all.
     val transferValid = type != TxnType.TRANSFER ||
         (fromAccount != null && toAccount != null && fromAccount?.id != toAccount?.id)
@@ -500,7 +552,10 @@ fun ManualTxnDialog(
                     TxnType.entries.forEachIndexed { index, option ->
                         SegmentedButton(
                             selected = type == option,
-                            onClick = { type = option },
+                            onClick = {
+                                type = option
+                                categoryId = Categories.defaultFor(option)
+                            },
                             shape = SegmentedButtonDefaults.itemShape(index = index, count = TxnType.entries.size),
                             modifier = Modifier.weight(1f),
                             icon = {},
@@ -510,13 +565,14 @@ fun ManualTxnDialog(
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
-                    label = { Text("Amount") },
+                    label = { Text(stringResource(R.string.forms_amount)) },
                     suffix = { Text(currency) },
                     singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(textDirection = TextDirection.Ltr),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
                 DropdownField(
-                    label = "Currency",
+                    label = stringResource(R.string.forms_currency),
                     value = currency,
                     options = CURRENCIES,
                     display = { it },
@@ -526,39 +582,39 @@ fun ManualTxnDialog(
                 if (live.isNotEmpty()) {
                     when (type) {
                         TxnType.EXPENSE -> DropdownField(
-                            label = "From account",
-                            value = fromAccount?.displayName ?: "None",
+                            label = stringResource(R.string.forms_from_account),
+                            value = fromAccount?.displayName?.let { bidiValue(it) } ?: stringResource(R.string.forms_none),
                             options = live,
                             display = { it.displayName },
-                            onSelect = { fromAccount = it },
+                            onSelect = { fromAccountId = it.id },
                         )
 
                         TxnType.INCOME -> DropdownField(
-                            label = "To account",
-                            value = toAccount?.displayName ?: "None",
+                            label = stringResource(R.string.forms_to_account),
+                            value = toAccount?.displayName?.let { bidiValue(it) } ?: stringResource(R.string.forms_none),
                             options = live,
                             display = { it.displayName },
-                            onSelect = { toAccount = it },
+                            onSelect = { toAccountId = it.id },
                         )
 
                         TxnType.TRANSFER -> {
                             DropdownField(
-                                label = "From account",
-                                value = fromAccount?.displayName ?: "None",
+                                label = stringResource(R.string.forms_from_account),
+                                value = fromAccount?.displayName?.let { bidiValue(it) } ?: stringResource(R.string.forms_none),
                                 options = live,
                                 display = { it.displayName },
-                                onSelect = { fromAccount = it },
+                                onSelect = { fromAccountId = it.id },
                             )
                             DropdownField(
-                                label = "To account",
-                                value = toAccount?.displayName ?: "None",
+                                label = stringResource(R.string.forms_to_account),
+                                value = toAccount?.displayName?.let { bidiValue(it) } ?: stringResource(R.string.forms_none),
                                 options = live,
                                 display = { it.displayName },
-                                onSelect = { toAccount = it },
+                                onSelect = { toAccountId = it.id },
                             )
                             if (!transferValid) {
                                 Text(
-                                    "Pick two different accounts, money can't move to where it already is.",
+                                    stringResource(R.string.forms_different_accounts),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.error,
                                 )
@@ -571,10 +627,10 @@ fun ManualTxnDialog(
                     OutlinedTextField(
                         value = merchant,
                         onValueChange = { merchant = it },
-                        label = { Text("Merchant / from (optional)") },
+                        label = { Text(stringResource(R.string.forms_merchant)) },
                         singleLine = true,
                     )
-                    Text("Category", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.forms_category), style = MaterialTheme.typography.labelLarge)
                     CategoryChips(
                         type = type,
                         selectedId = categoryId,
@@ -583,14 +639,13 @@ fun ManualTxnDialog(
                     )
                 } else {
                     Text(
-                        "A transfer has no category: it isn't spending or income, it's your own " +
-                            "money changing pocket.",
+                        stringResource(R.string.forms_transfer_no_category),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Text(
-                    "Date: ${dateFmt.format(Instant.ofEpochMilli(atMillis).atZone(ZoneId.systemDefault()))}",
+                    stringResource(R.string.forms_date, dateFmt.format(Instant.ofEpochMilli(atMillis).atZone(ZoneId.systemDefault()))),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -610,9 +665,9 @@ fun ManualTxnDialog(
                         if (type == TxnType.EXPENSE) null else toAccount?.id,
                     )
                 },
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.forms_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.forms_cancel)) } },
     )
 }
 
@@ -672,13 +727,15 @@ fun CategoryChips(
     allowSearch: Boolean = true,
 ) {
     val all = remember(type, order) { order.sort(Categories.forType(type)) }
+    val context = LocalContext.current
+    LocalConfiguration.current // Recompose category search after an app language change.
     var expanded by rememberSaveable(type) { mutableStateOf(false) }
     var query by rememberSaveable(type) { mutableStateOf("") }
 
     val searchable = allowSearch && all.size > SEARCH_THRESHOLD
     val filtering = expanded && searchable && query.isNotBlank()
     val shown = when {
-        filtering -> all.filter { it.name.contains(query.trim(), ignoreCase = true) }
+        filtering -> all.filter { categoryLabel(context, it).contains(query.trim(), ignoreCase = true) }
         expanded -> all
         else -> {
             val top = all.take(TOP_CHIPS)
@@ -691,7 +748,7 @@ fun CategoryChips(
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                label = { Text("Find a category") },
+                label = { Text(stringResource(R.string.forms_find_category)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -704,7 +761,7 @@ fun CategoryChips(
                 FilterChip(
                     selected = cat.id == selectedId,
                     onClick = { onSelect(cat.id) },
-                    label = { Text(cat.name) },
+                    label = { Text(bidiValue(categoryLabel(cat))) },
                     leadingIcon = { CategoryIcon(cat.id) },
                     modifier = Modifier.pressBounce(0.92f),
                 )
@@ -712,21 +769,21 @@ fun CategoryChips(
             if (!expanded && all.size > shown.size) {
                 AssistChip(
                     onClick = { expanded = true },
-                    label = { Text("More (${all.size - shown.size})") },
+                    label = { Text(stringResource(R.string.forms_more_categories, all.size - shown.size)) },
                     modifier = Modifier.pressBounce(0.92f),
                 )
             }
             if (expanded && !filtering) {
                 AssistChip(
                     onClick = { expanded = false; query = "" },
-                    label = { Text("Less") },
+                    label = { Text(stringResource(R.string.forms_less)) },
                     modifier = Modifier.pressBounce(0.92f),
                 )
             }
         }
         if (filtering && shown.isEmpty()) {
             Text(
-                "No category matches that.",
+                stringResource(R.string.forms_no_category_match),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

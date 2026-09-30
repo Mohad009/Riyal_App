@@ -1,5 +1,10 @@
 package com.alyaqdhan.riyal.ui.compose
 
+import android.content.Context
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import com.alyaqdhan.riyal.R
 import com.alyaqdhan.riyal.data.Txn
 import java.time.Instant
 import java.time.LocalDate
@@ -10,6 +15,32 @@ import java.time.format.DateTimeFormatter
 
 private val monthTitleFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM uuuu")
 private val dayFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM uu")
+
+/** Display dates follow the app locale; stored period labels and Gregorian bounds stay intact. */
+@Composable
+fun timeSliceLabel(slice: TimeSlice): String {
+    LocalConfiguration.current
+    return timeSliceLabel(LocalContext.current, slice)
+}
+
+fun timeSliceLabel(context: Context, slice: TimeSlice): String {
+    val locale = context.resources.configuration.locales[0]
+    val zone = ZoneId.systemDefault()
+    val startDay = Instant.ofEpochMilli(slice.start).atZone(zone).toLocalDate()
+    val endDay = Instant.ofEpochMilli(slice.endExclusive - 1).atZone(zone).toLocalDate()
+    if (slice.label == "All time") return context.getString(R.string.forms_all_time)
+    val lastMonths = Regex("Last (\\d+) months").matchEntire(slice.label)?.groupValues?.get(1)?.toIntOrNull()
+    if (lastMonths != null) return context.resources.getQuantityString(
+        R.plurals.forms_last_months, lastMonths, lastMonths,
+    )
+    if (slice.label.matches(Regex("\\d{4}"))) return slice.label
+    val month = slice.month ?: YearMonth.from(startDay).takeIf {
+        startDay.dayOfMonth == 1 && endDay == it.atEndOfMonth()
+    }
+    if (month != null) return month.format(DateTimeFormatter.ofPattern("MMMM uuuu", locale))
+    val formatter = DateTimeFormatter.ofPattern("d MMM uu", locale)
+    return context.getString(R.string.forms_date_range, formatter.format(startDay), formatter.format(endDay))
+}
 
 /**
  * One selected period of time, shared by Analysis, the budget section and the category

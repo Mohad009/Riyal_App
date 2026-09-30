@@ -13,6 +13,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.alyaqdhan.riyal.ui.compose.countOf
 import com.alyaqdhan.riyal.RiyalApp
+import com.alyaqdhan.riyal.R
+import com.alyaqdhan.riyal.ui.compose.localizedContext
 import com.alyaqdhan.riyal.core.Money
 import com.alyaqdhan.riyal.core.Verbose
 import com.alyaqdhan.riyal.data.Account
@@ -118,7 +120,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val noun: String = "messages",
         ) : ScanState
         data class Done(val summary: ScanSummary) : ScanState
-        data class Failed(val message: String) : ScanState
+        data class Failed(val messageRes: Int) : ScanState
     }
 
     private val _scanState = MutableStateFlow<ScanState>(ScanState.Idle)
@@ -186,7 +188,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (!_hasSmsPermission.value) {
             Verbose.fail("scan requested, but READ_SMS is not granted, nothing was read")
             Verbose.flush()
-            _scanState.value = ScanState.Failed("SMS reading permission is not granted")
+            _scanState.value = ScanState.Failed(R.string.scan_permission_missing)
             if (showSheet) scanSheetVisible.value = true
             return
         }
@@ -205,11 +207,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: SecurityException) {
                 Verbose.fail("scan aborted: the system refused the SMS read (permission revoked?)")
                 Verbose.flush()
-                _scanState.value = ScanState.Failed("The system refused the SMS read, check the permission")
+                _scanState.value = ScanState.Failed(R.string.scan_permission_refused)
             } catch (e: Exception) {
                 Verbose.fail("scan failed: ${e.javaClass.simpleName}: ${e.message}")
                 Verbose.flush()
-                _scanState.value = ScanState.Failed(e.message ?: "Unknown error")
+                _scanState.value = ScanState.Failed(R.string.scan_failed)
             }
         }
     }
@@ -462,7 +464,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val name = release.apkName ?: "Riyal-${release.tag}.apk"
             val request = DownloadManager.Request(url.toUri())
                 .setTitle(name)
-                .setDescription("Riyal ${release.tag}")
+                .setDescription(localizedContext(context).getString(R.string.update_download_description, release.tag))
                 .setMimeType("application/vnd.android.package-archive")
                 .setNotificationVisibility(
                     DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED

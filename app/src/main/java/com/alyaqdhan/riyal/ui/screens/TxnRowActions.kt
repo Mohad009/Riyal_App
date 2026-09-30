@@ -1,5 +1,9 @@
 package com.alyaqdhan.riyal.ui.screens
 
+import android.content.Context
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.alyaqdhan.riyal.R
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import com.alyaqdhan.riyal.data.Txn
@@ -16,13 +20,15 @@ import kotlinx.coroutines.launch
  * happen rather than a bare "Remove?".
  */
 /** The word on the revealed button. A label now, not a question: nothing is asked. */
+@Composable
 internal fun deleteLabelFor(txn: Txn): String = when {
-    txn.manual -> "Delete"
-    txn.isTransfer -> "Remove both"
-    else -> "Remove"
+    txn.manual -> stringResource(R.string.activity_delete)
+    txn.isTransfer -> stringResource(R.string.activity_remove_both)
+    else -> stringResource(R.string.activity_remove)
 }
 
 internal fun archiveWithUndo(
+    context: Context,
     vm: MainViewModel,
     snackbar: SnackbarHostState,
     scope: CoroutineScope,
@@ -32,14 +38,15 @@ internal fun archiveWithUndo(
     vm.archiveTxn(txn, archive)
     scope.launch {
         val result = snackbar.showSnackbar(
-            message = if (archive) "Archived" else "Back in your transactions",
-            actionLabel = "Undo",
+            message = if (archive) context.getString(R.string.activity_archived) else context.getString(R.string.activity_unarchived),
+            actionLabel = context.getString(R.string.activity_undo),
         )
         if (result == SnackbarResult.ActionPerformed) vm.archiveTxn(txn, !archive)
     }
 }
 
 internal fun removeForGood(
+    context: Context,
     vm: MainViewModel,
     snackbar: SnackbarHostState,
     scope: CoroutineScope,
@@ -51,7 +58,7 @@ internal fun removeForGood(
         // message it came from stays out of future scans. Saying so is the honest thing
         // a button that cannot deliver would not be.
         snackbar.showSnackbar(
-            if (txn.manual) "Deleted" else "Removed, and kept out of future scans",
+            if (txn.manual) context.getString(R.string.activity_deleted) else context.getString(R.string.activity_removed_permanently),
         )
     }
 }

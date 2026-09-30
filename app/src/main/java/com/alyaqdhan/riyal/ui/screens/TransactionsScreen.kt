@@ -33,6 +33,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.alyaqdhan.riyal.R
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -66,6 +70,7 @@ import java.time.LocalDate
 
 @Composable
 fun TransactionsScreen(vm: MainViewModel, onExport: () -> Unit) {
+    val context = LocalContext.current
     val txns by vm.txns.collectAsState()
     val scan by vm.scanState.collectAsState()
     val accounts by vm.accounts.collectAsState()
@@ -123,17 +128,17 @@ fun TransactionsScreen(vm: MainViewModel, onExport: () -> Unit) {
         },
         topBar = {
             TopAppBar(
-                title = { Text("Activity") },
+                title = { Text(stringResource(R.string.activity_transactions_title)) },
                 actions = {
                     // Sort and Filters live here, not in the chip row: six controls in
                     // one row pushed the Transfers chip off the right edge of something
                     // that gives no sign it scrolls.
                     SortChip(current = order, onSelect = { sort = it.name })
                     TextButton(onClick = { showFilters = true }) {
-                        Text(if (hiddenFilterCount > 0) "Filters ($hiddenFilterCount)" else "Filters")
+                        Text(if (hiddenFilterCount > 0) stringResource(R.string.activity_filters_count, hiddenFilterCount) else stringResource(R.string.activity_filters))
                     }
                     IconButton(onClick = onExport, enabled = txns.isNotEmpty()) {
-                        Icon(Icons.Filled.Share, contentDescription = "Export CSV")
+                        Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.activity_export_csv))
                     }
                 },
             )
@@ -168,7 +173,7 @@ fun TransactionsScreen(vm: MainViewModel, onExport: () -> Unit) {
                 FilterChip(
                     selected = typeFilter == null,
                     onClick = { typeFilter = null },
-                    label = { Text("All") },
+                    label = { Text(stringResource(R.string.activity_all)) },
                 )
                 TxnType.entries.forEach { type ->
                     FilterChip(
@@ -184,8 +189,8 @@ fun TransactionsScreen(vm: MainViewModel, onExport: () -> Unit) {
                     modifier = Modifier.padding(start = 8.dp),
                 ) {
                     Text(
-                        if (showArchived) "Back to your transactions"
-                        else "Archived (${archivedIds.size})",
+                        if (showArchived) stringResource(R.string.activity_back_transactions)
+                        else pluralStringResource(R.plurals.activity_archived_count, archivedIds.size, archivedIds.size),
                         style = MaterialTheme.typography.labelLarge,
                     )
                 }
@@ -206,7 +211,7 @@ fun TransactionsScreen(vm: MainViewModel, onExport: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            "Swipe a row, then tap Archive or Remove.",
+                            stringResource(R.string.activity_swipe_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.weight(1f),
@@ -214,7 +219,7 @@ fun TransactionsScreen(vm: MainViewModel, onExport: () -> Unit) {
                         TextButton(onClick = {
                             vm.prefs.swipeHintSeen = true
                             swipeHintSeen = true
-                        }) { Text("Got it") }
+                        }) { Text(stringResource(R.string.activity_got_it)) }
                     }
                 }
             }
@@ -227,11 +232,11 @@ fun TransactionsScreen(vm: MainViewModel, onExport: () -> Unit) {
                 ) {
                     EmptyState(
                         style = FaceStyle.SLEEPY,
-                        title = "No transactions here",
+                        title = stringResource(R.string.activity_no_transactions_here),
                         subtitle = when {
-                            showArchived -> "Nothing archived. Swipe a row right to put it here."
-                            typeFilter != null || hiddenFilterCount > 0 -> "Nothing matches these filters."
-                            else -> "Pull down to scan, or add one manually with +."
+                            showArchived -> stringResource(R.string.activity_archive_empty)
+                            typeFilter != null || hiddenFilterCount > 0 -> stringResource(R.string.activity_filters_empty)
+                            else -> stringResource(R.string.activity_transactions_empty_detail)
                         },
                     )
                 }
@@ -248,8 +253,8 @@ fun TransactionsScreen(vm: MainViewModel, onExport: () -> Unit) {
                             items(dayTxns, key = { it.id }) { txn ->
                                 SwipeableTxnRow(
                                     archived = txn.id in archivedIds,
-                                    onArchive = { archiveWithUndo(vm, snackbar, scope, txn, txn.id !in archivedIds) },
-                                    onDelete = { removeForGood(vm, snackbar, scope, txn) },
+                                    onArchive = { archiveWithUndo(context, vm, snackbar, scope, txn, txn.id !in archivedIds) },
+                                    onDelete = { removeForGood(context, vm, snackbar, scope, txn) },
                                     deleteLabel = deleteLabelFor(txn),
                                     modifier = Modifier.animateItem(),
                                 ) {
@@ -267,8 +272,8 @@ fun TransactionsScreen(vm: MainViewModel, onExport: () -> Unit) {
                         items(ranked, key = { it.id }) { txn ->
                             SwipeableTxnRow(
                                 archived = txn.id in archivedIds,
-                                onArchive = { archiveWithUndo(vm, snackbar, scope, txn, txn.id !in archivedIds) },
-                                onDelete = { removeForGood(vm, snackbar, scope, txn) },
+                                onArchive = { archiveWithUndo(context, vm, snackbar, scope, txn, txn.id !in archivedIds) },
+                                onDelete = { removeForGood(context, vm, snackbar, scope, txn) },
                                 deleteLabel = deleteLabelFor(txn),
                                 modifier = Modifier.animateItem(),
                             ) {
@@ -332,10 +337,11 @@ fun TransactionsScreen(vm: MainViewModel, onExport: () -> Unit) {
     }
 }
 
+@Composable
 private fun shortTypeLabel(type: TxnType): String = when (type) {
-    TxnType.EXPENSE -> "Out"
-    TxnType.INCOME -> "In"
-    TxnType.TRANSFER -> "Transfers"
+    TxnType.EXPENSE -> stringResource(R.string.activity_expenses_short)
+    TxnType.INCOME -> stringResource(R.string.activity_income_short)
+    TxnType.TRANSFER -> stringResource(R.string.activity_transfers_short)
 }
 
 @Composable

@@ -29,6 +29,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextDirection
+import com.alyaqdhan.riyal.R
 import com.alyaqdhan.riyal.core.LogLine
 import com.alyaqdhan.riyal.core.Money
 import com.alyaqdhan.riyal.data.Account
@@ -59,12 +64,13 @@ private val rowTimeFmt = DateTimeFormatter.ofPattern("dd MMM · h:mm a")
 private val rowClockFmt = DateTimeFormatter.ofPattern("h:mm a")
 private val dayFmt = DateTimeFormatter.ofPattern("EEEE, dd MMM uuuu")
 
+@Composable
 fun dayLabel(date: LocalDate): String {
     val today = LocalDate.now()
     return when (date) {
-        today -> "Today"
-        today.minusDays(1) -> "Yesterday"
-        else -> dayFmt.format(date)
+        today -> stringResource(R.string.today)
+        today.minusDays(1) -> stringResource(R.string.yesterday)
+        else -> dayFmt.withLocale(LocalConfiguration.current.locales[0]).format(date)
     }
 }
 
@@ -148,6 +154,7 @@ fun TxnRow(
     showAccount: Boolean = true,
 ) {
     val category = Categories.byId(txn.categoryId)
+    val context = LocalContext.current
     val transfer = txn.type == TxnType.TRANSFER
     val expense = txn.type == TxnType.EXPENSE
 
@@ -159,7 +166,10 @@ fun TxnRow(
     }
 
     fun accountName(id: String?): String? = id?.let { wanted ->
-        accounts.firstOrNull { it.id == wanted }?.let { if (oneBank) it.shortName else it.displayName }
+        accounts.firstOrNull { it.id == wanted }?.let { account ->
+            if (oneBank && (account.name.isNotBlank() || account.bankName.isNotBlank() || account.last4 != null))
+                account.shortName else accountLabel(context, account)
+        }
     }
 
     Surface(
@@ -178,21 +188,21 @@ fun TxnRow(
             CategoryBadge(category.id)
             Column(Modifier.weight(1f)) {
                 Text(
-                    if (transfer) "Transfer" else txn.merchant?.let(::unmasked) ?: category.name,
+                    if (transfer) stringResource(R.string.transfer) else txn.merchant?.let(::unmasked) ?: categoryLabel(category),
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                val time = (if (showDate) rowTimeFmt else rowClockFmt)
+                val time = (if (showDate) rowTimeFmt else rowClockFmt).withLocale(LocalConfiguration.current.locales[0])
                     .format(Instant.ofEpochMilli(txn.atMillis).atZone(ZoneId.systemDefault()))
                 Text(
                     if (transfer) {
-                        val from = accountName(txn.fromAccountId) ?: "unassigned"
-                        val to = accountName(txn.toAccountId) ?: "unassigned"
-                        "$from → $to · $time"
+                        val from = accountName(txn.fromAccountId) ?: stringResource(R.string.unassigned)
+                        val to = accountName(txn.toAccountId) ?: stringResource(R.string.unassigned)
+                        stringResource(R.string.transfer_route_time, bidiValue(from), bidiValue(to), time)
                     } else {
                         val account = accountName(txn.accountId) ?: txn.sender
-                        if (showAccount) "$account · $time" else time
+                        if (showAccount) stringResource(R.string.txn_account_time, bidiValue(account), time) else time
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -201,7 +211,7 @@ fun TxnRow(
                 )
                 if (!transfer && txn.categorySource == "auto" && txn.confidence < 70) {
                     Text(
-                        "parser was ${txn.confidence}% sure, tap to fix",
+                        stringResource(R.string.parser_confidence, txn.confidence),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.tertiary,
                     )
@@ -211,7 +221,7 @@ fun TxnRow(
                 Text(
                     if (transfer) Money.format(txn.amountMinor, txn.currency)
                     else Money.formatSigned(txn.amountMinor, txn.currency, expense),
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleSmall.copy(textDirection = TextDirection.Ltr),
                     // Money direction is semantic: out = danger red, in = success green,
                     // moved between your own accounts = neither.
                     color = when {
@@ -228,7 +238,7 @@ fun TxnRow(
                 // transfer's amount is neither red nor green.
                 if (transfer) {
                     Text(
-                        "not counted",
+                        stringResource(R.string.transfer_not_counted),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -330,7 +340,7 @@ fun HelpAction(title: String, help: String) {
     IconButton(onClick = { open = true }) {
         Icon(
             Icons.Outlined.Info,
-            contentDescription = "About $title",
+            contentDescription = stringResource(R.string.about_screen, title),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -339,7 +349,7 @@ fun HelpAction(title: String, help: String) {
             onDismissRequest = { open = false },
             title = { Text(title) },
             text = { Text(help) },
-            confirmButton = { TextButton(onClick = { open = false }) { Text("Got it") } },
+            confirmButton = { TextButton(onClick = { open = false }) { Text(stringResource(R.string.got_it)) } },
         )
     }
 }

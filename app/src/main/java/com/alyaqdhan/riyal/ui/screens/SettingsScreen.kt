@@ -64,15 +64,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalConfiguration
+import com.alyaqdhan.riyal.R
+import com.alyaqdhan.riyal.ui.compose.bidiValue
+import com.alyaqdhan.riyal.ui.compose.AppLanguageSetting
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.alyaqdhan.riyal.ui.compose.ScanSheetHost
-import com.alyaqdhan.riyal.ui.compose.countOf
 import com.alyaqdhan.riyal.core.Verbose
 import com.alyaqdhan.riyal.ui.MainViewModel
 import com.alyaqdhan.riyal.ui.compose.CURRENCIES
@@ -86,7 +92,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-private val settingsDayFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM uuuu")
+
 
 /**
  * Everything the scanner does is decided here, but the reason to open Settings is
@@ -107,6 +113,7 @@ fun SettingsScreen(
     onExport: () -> Unit,
 ) {
     val context = LocalContext.current
+    val settingsDayFmt = DateTimeFormatter.ofPattern("d MMM uuuu", LocalConfiguration.current.locales[0])
     val prefs = vm.prefs
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
@@ -121,29 +128,61 @@ fun SettingsScreen(
 
     var expenseKw by remember { mutableStateOf(prefs.expenseKeywords) }
     var incomeKw by remember { mutableStateOf(prefs.incomeKeywords) }
-    var newExpenseKw by remember { mutableStateOf("") }
-    var newIncomeKw by remember { mutableStateOf("") }
-    var rangeMonths by remember { mutableStateOf(prefs.scanRangeMonths) }
-    var freshStart by remember { mutableStateOf(prefs.scanSinceMillis) }
-    var currency by remember { mutableStateOf(prefs.defaultCurrency) }
-    var senderFilter by remember { mutableStateOf(prefs.senderFilterEnabled) }
+    var newExpenseKw by rememberSaveable { mutableStateOf("") }
+    var newIncomeKw by rememberSaveable { mutableStateOf("") }
+    var rangeMonths by rememberSaveable { mutableStateOf(prefs.scanRangeMonths) }
+    var freshStart by rememberSaveable { mutableStateOf(prefs.scanSinceMillis) }
+    var currency by rememberSaveable { mutableStateOf(prefs.defaultCurrency) }
+    var senderFilter by rememberSaveable { mutableStateOf(prefs.senderFilterEnabled) }
     var allowlist by remember { mutableStateOf(prefs.senderAllowlist) }
-    var newSender by remember { mutableStateOf("") }
-    var bankOnly by remember { mutableStateOf(prefs.bankSendersOnly) }
-    var scanOnLaunch by remember { mutableStateOf(prefs.scanOnLaunch) }
-    var smartRules by remember { mutableStateOf(prefs.smartRules) }
-    var budgetsEnabled by remember { mutableStateOf(prefs.budgetsEnabled) }
-    var autoConfirmTransfers by remember { mutableStateOf(prefs.autoConfirmTransfers) }
+    var newSender by rememberSaveable { mutableStateOf("") }
+    var bankOnly by rememberSaveable { mutableStateOf(prefs.bankSendersOnly) }
+    var scanOnLaunch by rememberSaveable { mutableStateOf(prefs.scanOnLaunch) }
+    var smartRules by rememberSaveable { mutableStateOf(prefs.smartRules) }
+    var budgetsEnabled by rememberSaveable { mutableStateOf(prefs.budgetsEnabled) }
+    var autoConfirmTransfers by rememberSaveable { mutableStateOf(prefs.autoConfirmTransfers) }
     var confirmWipe by remember { mutableStateOf(false) }
     var confirmExport by remember { mutableStateOf(false) }
     var pickCurrency by remember { mutableStateOf(false) }
 
+    val appLocale = LocalConfiguration.current.locales[0]
+    val enabledText = stringResource(R.string.activity_enabled)
+    val disabledText = stringResource(R.string.activity_disabled)
+    val logSetting = stringResource(R.string.activity_log_setting)
+    val logBudget = stringResource(R.string.activity_log_budget)
+    val logOnLaunch = stringResource(R.string.activity_log_on_launch)
+    val logScanRange = stringResource(R.string.activity_log_scan_range)
+    val logFreshStart = stringResource(R.string.activity_log_fresh_start)
+    val logExpenseRemove = stringResource(R.string.activity_log_expense_remove)
+    val logExpenseAdd = stringResource(R.string.activity_log_expense_add)
+    val logIncomeRemove = stringResource(R.string.activity_log_income_remove)
+    val logIncomeAdd = stringResource(R.string.activity_log_income_add)
+    val logKeywordsReset = stringResource(R.string.activity_log_keywords_reset)
+    val logBanks = stringResource(R.string.activity_log_banks)
+    val logAllowlist = stringResource(R.string.activity_log_allowlist)
+    val logSenderRemove = stringResource(R.string.activity_log_sender_remove)
+    val logSenderAdd = stringResource(R.string.activity_log_sender_add)
+    val logSenderApprove = stringResource(R.string.activity_log_sender_approve)
+    val logLearning = stringResource(R.string.activity_log_learning)
+    val logTransfers = stringResource(R.string.activity_log_transfers)
+    val logCopied = stringResource(R.string.activity_log_copied)
+    val logCleared = stringResource(R.string.activity_log_cleared)
+    val logUpdateCheck = stringResource(R.string.activity_log_update_check)
+    val logNoApk = stringResource(R.string.activity_log_no_apk)
+    val logDownload = stringResource(R.string.activity_log_download)
+    val logVersionCurrent = stringResource(R.string.activity_log_version_current)
+    val logVersionAvailable = stringResource(R.string.activity_log_version_available)
+    val logUpdateUnreachable = stringResource(R.string.activity_log_update_unreachable)
+    val logCurrency = stringResource(R.string.activity_log_currency)
+    fun logMessage(template: String, vararg args: Any): String =
+        if (args.isEmpty()) template else String.format(appLocale, template, *args)
+
     fun note(text: String) {
-        Verbose.info("setting changed by you: $text")
+        Verbose.info(logMessage(logSetting, text))
         Verbose.flush()
     }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Settings") }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.activity_settings_title)) }) }) { padding ->
         Column(
             Modifier
                 .padding(padding)
@@ -158,52 +197,47 @@ fun SettingsScreen(
                 messagesRead = lastSummary?.scanned,
             )
 
-            SettingsCard("Your money") {
+            AppLanguageSetting()
+
+            SettingsCard(stringResource(R.string.activity_your_money)) {
                 ValueLine(
-                    title = "Default currency",
+                    title = stringResource(R.string.activity_default_currency),
                     value = currency,
-                    detail = "Used when a message doesn't name a currency. OMR amounts keep " +
-                        "3 decimals (baisa).",
+                    detail = stringResource(R.string.activity_currency_help),
                     onClick = { pickCurrency = true },
                 )
                 NavLine(
-                    title = "Bank accounts",
-                    value = if (accounts.isEmpty()) "none yet" else "${accounts.size}",
-                    detail = "The accounts read out of your bank's own messages, their balances " +
-                        "and which sender belongs to which.",
+                    title = stringResource(R.string.activity_bank_accounts),
+                    value = if (accounts.isEmpty()) stringResource(R.string.activity_none_yet) else "${accounts.size}",
+                    detail = stringResource(R.string.activity_accounts_help),
                     onClick = onOpenAccounts,
                 )
                 NavLine(
-                    title = "Categories",
-                    value = if (rules.isEmpty()) null else "${rules.size} learned",
-                    detail = "Every category and what it cost, where your own are made - and " +
-                        "the names Riyal has learned: the ones it files without asking, and " +
-                        "the ones you asked to be asked about every time.",
+                    title = stringResource(R.string.activity_categories),
+                    value = if (rules.isEmpty()) null else pluralStringResource(R.plurals.activity_learned_rules, rules.size, rules.size),
+                    detail = stringResource(R.string.activity_categories_help),
                     onClick = onOpenCategories,
                 )
                 SwitchLine(
-                    title = "Budget",
-                    value = if (budgetsEnabled && budgets.isNotEmpty()) countOf(budgets.size, "plan") else null,
+                    title = stringResource(R.string.activity_budget),
+                    value = if (budgetsEnabled && budgets.isNotEmpty()) pluralStringResource(R.plurals.activity_plans, budgets.size, budgets.size) else null,
                     checked = budgetsEnabled,
                     onCheckedChange = {
                         budgetsEnabled = it
                         vm.budgetsEnabled = it
-                        note("budget planning ${if (it) "enabled" else "disabled"}")
+                        note(logMessage(logBudget, if (it) enabledText else disabledText))
                     },
-                    detail = "Home gains a budget section for the month it is showing: a cap per " +
-                        "category, a bar for each, and a marker for whether the money is going " +
-                        "faster than the calendar. A plan can cover any period, set from its editor.",
+                    detail = stringResource(R.string.activity_budget_help),
                 )
             }
 
-            SettingsCard("Scanning") {
+            SettingsCard(stringResource(R.string.activity_scanning)) {
                 ActionLine(
-                    title = "SMS permission",
-                    value = if (hasPerm) "allowed" else "off",
+                    title = stringResource(R.string.activity_sms_permission),
+                    value = if (hasPerm) stringResource(R.string.activity_allowed) else stringResource(R.string.activity_off),
                     valueIsWarning = !hasPerm,
-                    detail = "READ_SMS is the only permission this app declares. No internet, " +
-                        "no background receivers, no notifications.",
-                    actionLabel = "Manage",
+                    detail = stringResource(R.string.activity_permission_help),
+                    actionLabel = stringResource(R.string.activity_manage),
                     onAction = {
                         context.startActivity(
                             Intent(
@@ -214,24 +248,22 @@ fun SettingsScreen(
                     },
                 )
                 SwitchLine(
-                    title = "Scan when the app opens",
+                    title = stringResource(R.string.activity_scan_on_launch),
                     checked = scanOnLaunch,
                     onCheckedChange = {
                         scanOnLaunch = it
                         prefs.scanOnLaunch = it
-                        note("scan on app open ${if (it) "enabled" else "disabled"}")
+                        note(logMessage(logOnLaunch, if (it) enabledText else disabledText))
                     },
-                    detail = "Riyal reads the inbox once when it starts. With this off, a scan " +
-                        "only happens when you pull down to refresh.",
+                    detail = stringResource(R.string.activity_scan_on_launch_help),
                 )
 
                 ExpandLine(
-                    title = "How far back",
+                    title = stringResource(R.string.activity_how_far_back),
                     value = rangeLabel(rangeMonths),
-                    detail = "How far back a scan looks. Messages outside the range are not " +
-                        "even queried from the inbox.",
+                    detail = stringResource(R.string.activity_how_far_back_help),
                 ) {
-                    val ranges = listOf(1 to "1 mo", 3 to "3 mo", 6 to "6 mo", 12 to "1 yr", 0 to "All")
+                    val ranges = listOf(1, 3, 6, 12, 0).map { it to rangeLabel(it) }
                     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                         ranges.forEachIndexed { index, (months, label) ->
                             SegmentedButton(
@@ -239,7 +271,7 @@ fun SettingsScreen(
                                 onClick = {
                                     rangeMonths = months
                                     prefs.scanRangeMonths = months
-                                    note("scan range → $label")
+                                    note(logMessage(logScanRange, label))
                                 },
                                 shape = SegmentedButtonDefaults.itemShape(index = index, count = ranges.size),
                                 modifier = Modifier.weight(1f),
@@ -253,29 +285,26 @@ fun SettingsScreen(
                 // nothing older than the day it was chosen.
                 if (freshStart > 0L) {
                     StateNote(
-                        "Nothing before ${settingsDayFmt.format(
-                            Instant.ofEpochMilli(freshStart).atZone(ZoneId.systemDefault())
-                        )} is read, whichever range is picked.",
-                        action = "Read older messages too",
+                        stringResource(R.string.activity_fresh_start_detail, settingsDayFmt.format(Instant.ofEpochMilli(freshStart).atZone(ZoneId.systemDefault()))),
+                        action = stringResource(R.string.activity_read_older),
                         onAction = {
                             prefs.scanSinceMillis = 0L
                             freshStart = 0L
-                            note("fresh start lifted, older messages can be read again")
+                            note(logMessage(logFreshStart))
                         },
                     )
                 }
 
                 ExpandLine(
-                    title = "Gate keywords",
-                    value = "${expenseKw.size} out · ${incomeKw.size} in",
-                    detail = "A message is processed only if it contains one of these words. " +
-                        "Everything else is skipped, unread and unstored.",
+                    title = stringResource(R.string.activity_gate_keywords),
+                    value = stringResource(R.string.activity_keyword_counts, expenseKw.size, incomeKw.size),
+                    detail = stringResource(R.string.activity_gate_keywords_help),
                 ) {
-                    Text("Money out", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.activity_money_out), style = MaterialTheme.typography.labelLarge)
                     KeywordChips(expenseKw) { kw ->
                         expenseKw = expenseKw - kw
                         prefs.expenseKeywords = expenseKw
-                        note("removed expense keyword \"$kw\"")
+                        note(logMessage(logExpenseRemove, kw))
                     }
                     AddKeywordRow(
                         value = newExpenseKw,
@@ -285,16 +314,16 @@ fun SettingsScreen(
                             if (kw.isNotEmpty()) {
                                 expenseKw = expenseKw + kw
                                 prefs.expenseKeywords = expenseKw
-                                note("added expense keyword \"$kw\"")
+                                note(logMessage(logExpenseAdd, kw))
                             }
                             newExpenseKw = ""
                         },
                     )
-                    Text("Money in", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.activity_money_in), style = MaterialTheme.typography.labelLarge)
                     KeywordChips(incomeKw) { kw ->
                         incomeKw = incomeKw - kw
                         prefs.incomeKeywords = incomeKw
-                        note("removed income keyword \"$kw\"")
+                        note(logMessage(logIncomeRemove, kw))
                     }
                     AddKeywordRow(
                         value = newIncomeKw,
@@ -304,7 +333,7 @@ fun SettingsScreen(
                             if (kw.isNotEmpty()) {
                                 incomeKw = incomeKw + kw
                                 prefs.incomeKeywords = incomeKw
-                                note("added income keyword \"$kw\"")
+                                note(logMessage(logIncomeAdd, kw))
                             }
                             newIncomeKw = ""
                         },
@@ -313,44 +342,40 @@ fun SettingsScreen(
                         prefs.resetKeywords()
                         expenseKw = prefs.expenseKeywords
                         incomeKw = prefs.incomeKeywords
-                        note("keywords reset to defaults (withdraw/debited/purchase… + deposit/credited/salary… incl. Arabic)")
-                    }) { Text("Reset to defaults") }
+                        note(logMessage(logKeywordsReset))
+                    }) { Text(stringResource(R.string.activity_reset_defaults)) }
                 }
 
                 ExpandLine(
-                    title = "Who is read",
+                    title = stringResource(R.string.activity_who_is_read),
                     value = senderSummary(bankOnly, senderFilter, allowlist.size),
-                    detail = "Two filters over the sender name, on top of the gate keywords. " +
-                        "Banks that don't brand themselves as banks (NBO, Sohar Intl, " +
-                        "Meethaq) are approved by name in the list instead.",
+                    detail = stringResource(R.string.activity_who_is_read_help),
                 ) {
                     SwitchLine(
-                        title = "Bank senders only",
+                        title = stringResource(R.string.activity_bank_senders_only),
                         checked = bankOnly,
                         onCheckedChange = {
                             bankOnly = it
                             prefs.bankSendersOnly = it
-                            note("bank-senders-only ${if (it) "enabled" else "disabled"}")
+                            note(logMessage(logBanks, if (it) enabledText else disabledText))
                         },
-                        detail = "Only senders whose name contains “bank”, “بنك” or “مصرف” are " +
-                            "read. Anything else has to be approved by name below.",
+                        detail = stringResource(R.string.activity_bank_senders_help),
                     )
                     SwitchLine(
-                        title = "Only senders I approve",
+                        title = stringResource(R.string.activity_approved_only),
                         checked = senderFilter,
                         onCheckedChange = {
                             senderFilter = it
                             prefs.senderFilterEnabled = it
-                            note("sender allowlist ${if (it) "enabled" else "disabled"}")
+                            note(logMessage(logAllowlist, if (it) enabledText else disabledText))
                         },
-                        detail = "With this off, every sender is considered and the message body " +
-                            "still has to contain one of the gate keywords to be read at all.",
+                        detail = stringResource(R.string.activity_approved_only_help),
                     )
                     if (senderFilter || bankOnly) {
                         if (allowlist.isEmpty()) {
                             Text(
-                                if (senderFilter) "No approved senders yet, a scan will match nothing."
-                                else "No extra approved senders, only bank-named senders are read.",
+                                if (senderFilter) stringResource(R.string.activity_approved_empty)
+                                else stringResource(R.string.activity_extra_approved_empty),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (senderFilter) MaterialTheme.colorScheme.error
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -359,7 +384,7 @@ fun SettingsScreen(
                             KeywordChips(allowlist) { sender ->
                                 allowlist = allowlist - sender
                                 prefs.senderAllowlist = allowlist
-                                note("removed sender \"$sender\" from allowlist")
+                                note(logMessage(logSenderRemove, sender))
                             }
                         }
                         // Add a sender by name directly, for a bank whose ID hasn't shown up
@@ -367,13 +392,13 @@ fun SettingsScreen(
                         AddKeywordRow(
                             value = newSender,
                             onValueChange = { newSender = it },
-                            label = "Sender name",
+                            label = stringResource(R.string.activity_sender_name),
                             onAdd = {
                                 val s = newSender.trim()
                                 if (s.isNotEmpty() && s !in allowlist) {
                                     allowlist = allowlist + s
                                     prefs.senderAllowlist = allowlist
-                                    note("approved sender \"$s\" (added by name)")
+                                    note(logMessage(logSenderAdd, s))
                                 }
                                 newSender = ""
                             },
@@ -383,7 +408,7 @@ fun SettingsScreen(
                         }
                         if (suggestions.isNotEmpty()) {
                             Text(
-                                "Seen in your inbox, tap to approve:",
+                                stringResource(R.string.activity_sender_suggestions),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -393,9 +418,9 @@ fun SettingsScreen(
                                         onClick = {
                                             allowlist = allowlist + sender
                                             prefs.senderAllowlist = allowlist
-                                            note("approved sender \"$sender\"")
+                                            note(logMessage(logSenderApprove, sender))
                                         },
-                                        label = { Text(sender) },
+                                        label = { Text(bidiValue(sender)) },
                                     )
                                 }
                             }
@@ -409,32 +434,20 @@ fun SettingsScreen(
                 val scan by vm.scanState.collectAsState()
                 val running = scan as? MainViewModel.ScanState.Running
                 ActionLine(
-                    title = "Scan now",
+                    title = stringResource(R.string.activity_scan_now),
                     value = running?.let { p ->
-                        if (p.total > 0) "${p.processed} of ${p.total}" else "starting…"
+                        if (p.total > 0) stringResource(R.string.activity_progress, p.processed, p.total) else stringResource(R.string.activity_starting)
                     },
-                    detail = "Reads the messages that arrived since the last scan, so it costs " +
-                        "what is new rather than what your inbox holds. Riyal has no " +
-                        "background receiver: it reads only when you ask it to, or when it " +
-                        "opens if that is switched on above.\n\nTo rebuild everything from " +
-                        "scratch, use Rescan everything below.",
-                    actionLabel = if (running != null) "Scanning" else "Scan",
+                    detail = stringResource(R.string.activity_scan_now_help),
+                    actionLabel = if (running != null) stringResource(R.string.activity_scanning) else stringResource(R.string.activity_scan_action),
                     enabled = running == null,
                     onAction = { vm.startScan() },
                 )
                 ActionLine(
-                    title = "Rescan everything",
+                    title = stringResource(R.string.activity_rescan_all),
                     value = null,
-                    detail = "Scanning normally reads only the messages that arrived since " +
-                        "last time, which is why it is quick. This reads the whole range " +
-                        "again and rebuilds every record from the messages still in your " +
-                        "inbox.\n\nTwo things only this can do: notice a bank message you " +
-                        "have since deleted, whose record would otherwise stay, and re-read " +
-                        "old messages under rules you have changed. Riyal does the second " +
-                        "for you whenever you change a keyword; the first is yours to ask " +
-                        "for.\n\nOn a large inbox this takes a while. Nothing you have filed " +
-                        "or entered by hand is lost by it.",
-                    actionLabel = "Rescan",
+                    detail = stringResource(R.string.activity_rescan_help),
+                    actionLabel = stringResource(R.string.activity_rescan),
                     enabled = running == null,
                     onAction = { vm.startScan(full = true) },
                 )
@@ -448,78 +461,64 @@ fun SettingsScreen(
                 }
             }
 
-            SettingsCard("Automation") {
+            SettingsCard(stringResource(R.string.activity_automation)) {
                 SwitchLine(
-                    title = "Learn from my corrections",
+                    title = stringResource(R.string.activity_learn_corrections),
                     checked = smartRules,
                     onCheckedChange = {
                         smartRules = it
                         prefs.smartRules = it
-                        note("smart category learning ${if (it) "enabled" else "disabled"}")
+                        note(logMessage(logLearning, if (it) enabledText else disabledText))
                     },
-                    detail = "When you fix a category on a transaction with a merchant, that " +
-                        "merchant is remembered and applied to past and future messages. The " +
-                        "category picker still lets you opt out for a single edit, and a name " +
-                        "marked “ask every time” is never remembered at all.",
+                    detail = stringResource(R.string.activity_learn_corrections_help),
                 )
                 SwitchLine(
-                    title = "Confirm transfers for me",
+                    title = stringResource(R.string.activity_confirm_transfers),
                     checked = autoConfirmTransfers,
                     onCheckedChange = {
                         autoConfirmTransfers = it
                         vm.autoConfirmTransfers = it
-                        note("auto-confirm transfers ${if (it) "enabled" else "disabled"}")
+                        note(logMessage(logTransfers, if (it) enabledText else disabledText))
                     },
-                    detail = "A matching pair is the same amount and currency, moving between " +
-                        "two of your own accounts, minutes apart. With this on it becomes one " +
-                        "transfer straight away and stops counting as spending or income; any " +
-                        "of them can be split back apart from its row in Activity. With it off, " +
-                        "every pair waits in Review for your yes or no.",
+                    detail = stringResource(R.string.activity_confirm_transfers_help),
                 )
             }
 
-            SettingsCard("Your data") {
+            SettingsCard(stringResource(R.string.activity_your_data)) {
                 ActionLine(
-                    title = "Export transactions",
+                    title = stringResource(R.string.activity_export_transactions),
                     // The count belongs to the moment you ask for the file, not to a row
                     // you are only reading past. It is said in the confirmation instead.
                     value = null,
-                    detail = "Writes every record to a CSV file you choose: date, type, amount, " +
-                        "accounts, merchant, category and the message it was read from.",
-                    actionLabel = "Export",
+                    detail = stringResource(R.string.activity_export_help),
+                    actionLabel = stringResource(R.string.activity_export),
                     onAction = { confirmExport = true },
                 )
                 ExpandLine(
-                    title = "Verbose log",
-                    value = "every step, in plain words",
-                    detail = "Everything the scanner did and why, written as it happens. It " +
-                        "never leaves the phone unless you copy it out yourself.",
+                    title = stringResource(R.string.activity_verbose_log),
+                    value = stringResource(R.string.activity_verbose_value),
+                    detail = stringResource(R.string.activity_verbose_help),
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton(onClick = {
                             scope.launch { clipboard.setClipEntry(plainText(Verbose.dump())) }
-                            note("verbose log copied to clipboard")
-                        }) { Text("Copy") }
+                            note(logMessage(logCopied))
+                        }) { Text(stringResource(R.string.activity_copy)) }
                         TextButton(onClick = {
                             Verbose.clear()
-                            Verbose.info("log cleared by you")
+                            Verbose.info(logMessage(logCleared))
                             Verbose.flush()
-                        }) { Text("Clear") }
+                        }) { Text(stringResource(R.string.activity_clear)) }
                     }
                 }
                 ValueLine(
-                    title = "Where it lives",
-                    value = "this phone only",
-                    detail = "Everything lives in one JSON file inside this app's private " +
-                        "storage, and backups are disabled. The app does reach the network, " +
-                        "for one thing: it asks GitHub whether a newer release exists, and " +
-                        "downloads that APK if you ask it to. Nothing goes the other way. No " +
-                        "record, message, account or figure is ever put in a request, and " +
-                        "there is no analytics and no backend.",
+                    title = stringResource(R.string.activity_storage_title),
+                    value = stringResource(R.string.activity_storage_value),
+                    detail = stringResource(R.string.activity_storage_help),
                 )
             }
 
-            SettingsCard("About") {
+            SettingsCard(stringResource(R.string.activity_about)) {
                 // One row, every state. Normally it is the version you are on; when
                 // GitHub is offering a later one it becomes the way to get it. The
                 // release notes sit behind the (i) whichever way the check came out,
@@ -538,69 +537,39 @@ fun SettingsScreen(
                 // Only a check the user tapped gets an answer said out loud. The daily
                 // one in the background must stay silent.
                 var asked by remember { mutableStateOf(false) }
+                val updateDetail = when {
+                    offered != null -> stringResource(R.string.activity_update_versions, version, offered.tag) + stringResource(R.string.activity_update_download_help)
+                    updateState is MainViewModel.UpdateState.UpToDate -> stringResource(R.string.activity_version_current, version)
+                    updateState is MainViewModel.UpdateState.Unreachable -> stringResource(R.string.activity_update_unreachable_help)
+                    else -> stringResource(R.string.activity_about_help)
+                } + if (notes != null) stringResource(R.string.activity_release_notes, known!!.tag) + notes else ""
                 ActionLine(
-                    title = "Riyal",
+                    title = stringResource(R.string.activity_brand),
                     value = when {
-                        checking -> "checking…"
-                        offered != null -> "${offered.tag} available"
-                        updateState is MainViewModel.UpdateState.UpToDate -> "$version · latest"
+                        checking -> stringResource(R.string.activity_checking_ellipsis)
+                        offered != null -> stringResource(R.string.activity_update_available, offered.tag)
+                        updateState is MainViewModel.UpdateState.UpToDate -> stringResource(R.string.activity_version_latest, version)
                         updateState is MainViewModel.UpdateState.Unreachable ->
-                            "$version · could not check"
+                            stringResource(R.string.activity_version_unchecked, version)
                         else -> version
                     },
                     valueIsWarning = offered != null,
-                    detail = buildString {
-                        when {
-                            offered != null -> {
-                                // The warning comes before the notes, not after. A
-                                // release body is as long as its author felt like, and
-                                // the thing that has to be read before tapping Download
-                                // must not be underneath it.
-                                append("You have $version. ${offered.tag} is out.\n\n")
-                                append(
-                                    "Downloading puts the APK in your Downloads folder and opens " +
-                                        "it there. Riyal cannot install it for you - you tap the " +
-                                        "file yourself. If Android refuses the install, that build " +
-                                        "is signed with a different key than this one: uninstall " +
-                                        "Riyal first, which clears its stored records. They rebuild " +
-                                        "from your inbox on the next scan, but hand-filed " +
-                                        "categories do not."
-                                )
-                            }
-                            updateState is MainViewModel.UpdateState.UpToDate ->
-                                append("You have $version, which is the latest published release.")
-                            updateState is MainViewModel.UpdateState.Unreachable ->
-                                append(
-                                    "The last check could not reach GitHub. Being offline, a " +
-                                        "rate limit and a release that was never published all " +
-                                        "look the same from here. Nothing is wrong with the copy " +
-                                        "you have; tap Check now to try again."
-                                )
-                            else -> append(
-                                "Made for Oman 🇴🇲 · OMR-first, with Arabic SMS support. " +
-                                    "Checks GitHub once a day for a newer release."
-                            )
-                        }
-                        if (notes != null) {
-                            append("\n\nWhat is in ${known!!.tag}\n\n")
-                            append(notes)
-                        }
-                    },
+                    detail = updateDetail,
                     actionLabel = when {
-                        checking -> "Checking"
-                        offered != null -> "Download"
-                        else -> "Check now"
+                        checking -> stringResource(R.string.activity_checking)
+                        offered != null -> stringResource(R.string.activity_download)
+                        else -> stringResource(R.string.activity_check_now)
                     },
                     enabled = !checking,
                     onAction = {
                         if (offered == null) {
                             asked = true
-                            note("checking GitHub for a newer release")
+                            note(logMessage(logUpdateCheck))
                             vm.checkForUpdate(version, force = true)
                         } else if (!offered.hasApk) {
-                            note("${offered.tag} has no APK attached to it")
+                            note(logMessage(logNoApk, offered.tag))
                         } else if (vm.downloadUpdate()) {
-                            note("downloading ${offered.tag} to your Downloads folder")
+                            note(logMessage(logDownload, offered.tag))
                         }
                     },
                 )
@@ -609,11 +578,11 @@ fun SettingsScreen(
                 LaunchedEffect(updateState) {
                     when (val u = updateState) {
                         is MainViewModel.UpdateState.UpToDate ->
-                            if (asked) { asked = false; note("$version is the latest, nothing to install") }
+                            if (asked) { asked = false; note(logMessage(logVersionCurrent, version)) }
                         is MainViewModel.UpdateState.Available ->
-                            if (asked) { asked = false; note("${u.release.tag} is available") }
+                            if (asked) { asked = false; note(logMessage(logVersionAvailable, u.release.tag)) }
                         is MainViewModel.UpdateState.Unreachable ->
-                            if (asked) { asked = false; note("could not reach GitHub, try again later") }
+                            if (asked) { asked = false; note(logMessage(logUpdateUnreachable)) }
                         else -> Unit
                     }
                 }
@@ -632,13 +601,13 @@ fun SettingsScreen(
 
     if (pickCurrency) {
         PickerDialog(
-            title = "Default currency",
+            title = stringResource(R.string.activity_default_currency),
             options = CURRENCIES,
             selected = currency,
             onPick = {
                 currency = it
                 prefs.defaultCurrency = it
-                note("default currency → $it")
+                note(logMessage(logCurrency, it))
                 pickCurrency = false
             },
             onDismiss = { pickCurrency = false },
@@ -648,21 +617,20 @@ fun SettingsScreen(
     if (confirmWipe) {
         AlertDialog(
             onDismissRequest = { confirmWipe = false },
-            title = { Text("Delete everything?") },
+            title = { Text(stringResource(R.string.activity_delete_everything_title)) },
             text = {
                 Text(
-                    "All recorded transactions, rules, review items and settings will be erased. " +
-                        "Your SMS inbox itself is untouched, this app never modifies messages.",
+                    stringResource(R.string.activity_delete_everything_detail),
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     vm.wipeAll()
                     confirmWipe = false
-                }) { Text("Delete") }
+                }) { Text(stringResource(R.string.activity_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmWipe = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmWipe = false }) { Text(stringResource(R.string.activity_cancel)) }
             },
         )
     }
@@ -670,15 +638,13 @@ fun SettingsScreen(
     if (confirmExport) {
         AlertDialog(
             onDismissRequest = { confirmExport = false },
-            title = { Text("Export " + countOf(txns.size, "record") + "?") },
+            title = { Text(pluralStringResource(R.plurals.activity_export_records, txns.size, txns.size)) },
             text = {
                 Text(
                     if (txns.isEmpty()) {
-                        "There is nothing recorded yet, so the file would be empty. Scan your " +
-                            "messages first."
+                        stringResource(R.string.activity_export_empty_detail)
                     } else {
-                        "Every record Riyal holds goes into one CSV file, and you choose where " +
-                            "it is written. Nothing leaves the phone on its own."
+                        stringResource(R.string.activity_export_confirm_detail)
                     },
                 )
             },
@@ -689,10 +655,10 @@ fun SettingsScreen(
                         confirmExport = false
                         onExport()
                     },
-                ) { Text("Export") }
+                ) { Text(stringResource(R.string.activity_export)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmExport = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmExport = false }) { Text(stringResource(R.string.activity_cancel)) }
             },
         )
     }
@@ -715,14 +681,14 @@ private fun StatusCard(
     Card(Modifier.fillMaxWidth().popIn()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                if (lastScanAt <= 0L) "No scan yet" else "Last scan ${relativeTime(lastScanAt)}",
+                if (lastScanAt <= 0L) stringResource(R.string.activity_no_scan) else stringResource(R.string.activity_last_scan, relativeTime(lastScanAt)),
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
                 listOfNotNull(
-                    countOf(records, "record"),
-                    countOf(accounts, "account"),
-                    messagesRead?.let { countOf(it, "message") + " read" },
+                    pluralStringResource(R.plurals.activity_record_count, records, records),
+                    pluralStringResource(R.plurals.activity_account_count, accounts, accounts),
+                    messagesRead?.let { pluralStringResource(R.plurals.activity_messages_read, it, it) },
                 ).joinToString(" · "),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -732,32 +698,33 @@ private fun StatusCard(
 }
 
 /** "2 hours ago", or the date once that stops being a useful way to say it. */
+@Composable
 private fun relativeTime(millis: Long): String {
     val minutes = (System.currentTimeMillis() - millis) / 60_000
+    val locale = LocalConfiguration.current.locales[0]
     return when {
-        minutes < 1 -> "just now"
-        minutes < 60 -> countOf(minutes.toInt(), "minute") + " ago"
-        minutes < 60 * 24 -> countOf((minutes / 60).toInt(), "hour") + " ago"
-        minutes < 60 * 24 * 7 -> countOf((minutes / (60 * 24)).toInt(), "day") + " ago"
-        else -> "on " + settingsDayFmt.format(
-            Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault())
-        )
+        minutes < 1 -> stringResource(R.string.activity_just_now)
+        minutes < 60 -> pluralStringResource(R.plurals.activity_minutes_ago, minutes.toInt(), minutes.toInt())
+        minutes < 60 * 24 -> pluralStringResource(R.plurals.activity_hours_ago, (minutes / 60).toInt(), (minutes / 60).toInt())
+        minutes < 60 * 24 * 7 -> pluralStringResource(R.plurals.activity_days_ago, (minutes / (60 * 24)).toInt(), (minutes / (60 * 24)).toInt())
+        else -> stringResource(R.string.activity_on_date, DateTimeFormatter.ofPattern("d MMM uuuu", locale).format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault())))
     }
 }
 
+@Composable
 private fun rangeLabel(months: Int): String = when (months) {
-    0 -> "everything"
-    1 -> "1 month"
-    12 -> "1 year"
-    else -> "$months months"
+    0 -> stringResource(R.string.activity_everything)
+    12 -> stringResource(R.string.activity_one_year)
+    else -> pluralStringResource(R.plurals.activity_months_short, months, months)
 }
 
+@Composable
 private fun senderSummary(bankOnly: Boolean, allowlistOn: Boolean, approved: Int): String = when {
-    allowlistOn && approved == 0 -> "nobody"
-    allowlistOn -> "$approved approved"
-    bankOnly && approved > 0 -> "banks + $approved"
-    bankOnly -> "banks only"
-    else -> "any sender"
+    allowlistOn && approved == 0 -> stringResource(R.string.activity_no_senders)
+    allowlistOn -> pluralStringResource(R.plurals.activity_approved_senders, approved, approved)
+    bankOnly && approved > 0 -> pluralStringResource(R.plurals.activity_banks_extra, approved, approved)
+    bankOnly -> stringResource(R.string.activity_banks_only)
+    else -> stringResource(R.string.activity_any_sender)
 }
 
 // ─────────────────────────── one line per row ───────────────────────────
@@ -797,7 +764,7 @@ private fun SettingLine(
         if (detail != null) {
             Icon(
                 Icons.Filled.Info,
-                contentDescription = "About $title",
+                contentDescription = stringResource(R.string.activity_about_setting, title),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .size(16.dp)
@@ -829,7 +796,7 @@ private fun SettingLine(
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState())) { Text(detail) }
             },
-            confirmButton = { TextButton(onClick = { showDetail = false }) { Text("Got it") } },
+            confirmButton = { TextButton(onClick = { showDetail = false }) { Text(stringResource(R.string.activity_got_it)) } },
         )
     }
 }
@@ -927,7 +894,7 @@ private fun ExpandLine(
         ) {
             Icon(
                 if (open) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                contentDescription = if (open) "Collapse $title" else "Expand $title",
+                contentDescription = if (open) stringResource(R.string.activity_collapse_setting, title) else stringResource(R.string.activity_expand_setting, title),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
@@ -984,9 +951,9 @@ private fun DangerCard(onClick: () -> Unit) {
         ) {
             Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
             Column(Modifier.weight(1f)) {
-                Text("Delete all app data", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.activity_delete_data), style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "Records, rules and settings. Your inbox is untouched.",
+                    stringResource(R.string.activity_delete_data_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -1027,7 +994,7 @@ private fun PickerDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.activity_cancel)) } },
     )
 }
 
@@ -1056,11 +1023,11 @@ private fun KeywordChips(items: Set<String>, onRemove: (String) -> Unit) {
             InputChip(
                 selected = false,
                 onClick = {},
-                label = { Text(item) },
+                label = { Text(bidiValue(item)) },
                 trailingIcon = {
                     Icon(
                         Icons.Filled.Close,
-                        contentDescription = "Remove $item",
+                        contentDescription = stringResource(R.string.activity_remove_item, bidiValue(item)),
                         modifier = Modifier
                             .size(16.dp)
                             .clickable { onRemove(item) },
@@ -1076,7 +1043,7 @@ private fun AddKeywordRow(
     value: String,
     onValueChange: (String) -> Unit,
     onAdd: () -> Unit,
-    label: String = "Add keyword",
+    label: String = stringResource(R.string.activity_add_keyword),
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1089,7 +1056,7 @@ private fun AddKeywordRow(
             singleLine = true,
             modifier = Modifier.weight(1f),
         )
-        FilledTonalButton(onClick = onAdd, enabled = value.isNotBlank()) { Text("Add") }
+        FilledTonalButton(onClick = onAdd, enabled = value.isNotBlank()) { Text(stringResource(R.string.activity_add)) }
     }
 }
 

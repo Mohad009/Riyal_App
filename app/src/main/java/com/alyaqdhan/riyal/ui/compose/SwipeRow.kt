@@ -35,8 +35,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.alyaqdhan.riyal.R
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign
@@ -85,17 +89,18 @@ fun SwipeableTxnRow(
     onArchive: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
-    deleteLabel: String = "Remove",
+    deleteLabel: String? = null,
     content: @Composable () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val offset = remember { Animatable(0f) }
     var reveal by remember { mutableFloatStateOf(0f) }
 
     val x = offset.value
-    // Negative is a swipe to the left, which uncovers the right-hand edge.
-    val toStart = x < 0f
+    // In RTL the start edge is right, so the action follows the logical swipe direction.
+    val toStart = if (rtl) x > 0f else x < 0f
     val open = abs(x) > 0.5f
 
     fun close() = scope.launch { offset.animateTo(0f, spring()) }
@@ -138,9 +143,9 @@ fun SwipeableTxnRow(
             ) {
                 RevealedAction(
                     label = when {
-                        remove -> deleteLabel
-                        archived -> "Unarchive"
-                        else -> "Archive"
+                        remove -> deleteLabel ?: stringResource(R.string.forms_remove)
+                        archived -> stringResource(R.string.forms_unarchive)
+                        else -> stringResource(R.string.forms_archive)
                     },
                     remove = remove,
                     width = with(density) { reveal.toDp() },
